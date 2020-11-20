@@ -1,0 +1,20 @@
+Package: panelbuilder
+Title: Fluorescent cytometry panel building assistant
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Miroslav",
+           family = "Kratochvil",
+           role = c("aut", "cre"),
+           email = "exa.exa@gmail.com",
+           comment = c(ORCID = "0000-0001-7356-4075"))
+Description: A collection of tools to build fluorescent cytometry panels,
+             together with a Shiny UI.
+Depends: R (>=3.5),
+         shiny, colorspace, ggplot2, cowplot,
+	 reshape2, gtools,
+	 flowCore
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
