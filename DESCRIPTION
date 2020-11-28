@@ -12,6 +12,7 @@ Description: A collection of tools to build fluorescent cytometry panels,
 Depends: R (>= 3.5),
          shiny, colorspace, ggplot2, cowplot,
 	 reshape2, gtools,
+	 png, openssl,
 	 flowCore
 License: GPL-3
 Encoding: UTF-8

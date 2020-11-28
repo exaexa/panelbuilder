@@ -3,11 +3,6 @@ menuImportSpectra <- function(input,output,session,wsp) {
   output$menuImportSpectra <- shiny::renderUI("Import spectra")
 }
 
-defaultMachines <- c('Aurora','Symphony','Fortessa II','BFC 9k')
-defaultSampleTypes <- c('Spleen (mouse)','Thymus (mouse)','PBMC (mouse)','Bone marrow (mouse)','Beads')
-defaultAntigens <- c(paste0('CD',1:100),'L/D','Unstained') 
-defaultFluorochromes <- c('Cy5', 'Cy5.5', 'Cy7', 'APC', 'FITC', 'PE', 'GFP', 'Unstained')
-
 serveImportSpectra <- function(input, output, session, wsp) {
   
   data <- shiny::reactiveValues(
@@ -29,17 +24,14 @@ serveImportSpectra <- function(input, output, session, wsp) {
     if(is.null(input$importDataCols)) return()
     cols <- nat.sort(input$importDataCols)
     data$spectrum <- extractSpectrum(data$fcsMtx[,cols,drop=F])
+    #print(data$spectrum)
   })
 
   observeEvent(input$doImportSave, {
     if(is.null(data$spectrum)) return()
-    n <- list(machine=input$importMachine,
-      mconfig=input$importMachineConfig,
-      sample=input$importSampleType,
-      antigen=input$importAntigen,
-      fluorochrome=input$importFluorochrome,
-      note=input$importNote,
-      spectrum=data$spectrum)
+    n <- c(
+      spectrumMetadataFormGather('importForm', input),
+      list(spectrum=data$spectrum))
     if(any(sapply(wsp$spectra, function(x)
       all(sapply(names(n),function(nm)
         if(nm=='spectrum')TRUE else n[[nm]]==x[[nm]]))
@@ -53,41 +45,28 @@ serveImportSpectra <- function(input, output, session, wsp) {
 
     shiny::showNotification(type='message',
       "Saved OK.")
-
-    print(wsp$spectra)
   })
 
   output$uiImportResult <- shiny::renderUI(shiny::tagList(
     shiny::h3("Computed spectrum"),
     if(is.null(data$spectrum)) "No spectrum computed"
     else shiny::tagList(
-      paste0("Mean fluorescent intensity: ",e2db(data$spectrum$mI^2),", signal: ",e2db(data$spectrum$sdI^2,'')),
+      paste0("Mean fluorescent intensity: ", dbf(data$spectrum$mI),
+             ", signal: ", dbf(2*data$spectrum$sdI,'')),
       shiny::plotOutput('plotImportSpectra', width='100%', height='40ex')
     )
   ))
+
+  output$plotImportSpectra <- shiny::renderPlot(
+    if(!is.null(data$spectrum))
+      plotSpectrum(data$spectrum$mS, data$spectrum$sdS, data$spectrum$channels)
+  )
 
   output$uiImportSave <- shiny::renderUI({
     wsp$page # reload the information from wsp$spectra after the page changed
     shiny::tagList(
       shiny::h3("Save the spectrum"),
-      shiny::selectizeInput('importMachine', "Cytometer model",
-        choices=nat.sort(unique(c(defaultMachines,unlist(sapply(isolate(wsp$spectra), function(x) x$machine))))),
-        multiple=F, options=list(`create`=TRUE)),
-      shiny::selectizeInput('importMachineConfig', "Cytometer configuration",
-        choices=nat.sort(unique(c('—',unlist(sapply(isolate(wsp$spectra), function(x) x$mconfig))))),
-        multiple=F, options=list(`create`=TRUE)),
-      shiny::selectizeInput('importSampleType', "Sample type",
-        choices=nat.sort(unique(c(defaultSampleTypes,unlist(sapply(isolate(wsp$spectra), function(x) x$sample))))),
-        multiple=F, options=list(`create`=TRUE)),
-      shiny::selectizeInput('importAntigen', "Antigen",
-        choices=nat.sort(unique(c(defaultAntigens,unlist(sapply(isolate(wsp$spectra), function(x) x$antigen))))),
-        multiple=F, options=list(`create`=TRUE)),
-      shiny::selectizeInput('importFluorochrome', "Fluorochrome",
-        choices=nat.sort(unique(c(defaultFluorochromes,unlist(sapply(isolate(wsp$spectra), function(x) x$fluorochrome))))),
-        multiple=F, options=list(`create`=TRUE)),
-      shiny::selectizeInput('importNote', "Note",
-        choices=nat.sort(unique(c('—', unlist(sapply(isolate(wsp$spectra), function(x) x$note))))),
-        multiple=F, options=list(`create`=TRUE)),
+      spectrumMetadataForm('importForm', isolate(wsp$spectra)),
       shiny::uiOutput('uiImportSaveBtn')
   )})
 
@@ -96,17 +75,13 @@ serveImportSpectra <- function(input, output, session, wsp) {
     else shiny::actionButton('doImportSave', "Save")
   )
 
-  output$plotImportSpectra <- shiny::renderPlot(
-    if(!is.null(data$spectrum))
-      plotSpectrum(data$spectrum$mS, data$spectrum$sdS)
-  )
-
   output$uiImportColumnPicker <- shiny::renderUI(
     shiny::selectizeInput('importDataCols',
       "Fluorescent channels",
       multiple=T,
       choices=colnames(data$fcsMtx),
-      selected=shiny::isolate(defaultFluorescenceChannels(colnames(data$fcsMtx))),
+      selected=shiny::isolate(
+        defaultFluorescenceChannels(nat.sort(colnames(data$fcsMtx)))),
       options=list(`actions-box`=TRUE)))
 
   output$uiImportSpectra <- shiny::renderUI(shiny::tagList(

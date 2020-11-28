@@ -1,5 +1,5 @@
 roxygen2::roxygenize()
-devtools::install(dependencies=F)
+devtools::install(dependencies=F, quick=T)
 library(panelbuilder)
 options(shiny.fullstacktrace=T)
 panelBuildeR(options=list(port=8080, launch.browser=F))

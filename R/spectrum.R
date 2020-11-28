@@ -3,23 +3,29 @@
 #'
 #' the spectra are scaled to the mI.
 extractSpectrum <- function(mtx) {
-  a <- rowSums(mtx)
+  channels <- nat.sort(colnames(mtx))
+  m2 <- mtx[,channels,drop=F]
+  a <- rowSums(m2)
   # @importFrom MASS rlm
   #scoefs <- apply(mtx,2,function(x) MASS::rlm(x ~ a+0)$coefficients)
-  scoefs <- lm(mtx~a+0)$coefficients[,]
+  scoefs <- lm(m2~a+0)$coefficients[,]
   coefs <- scoefs / sqrt(sum(scoefs^2))
-  m <- lm(t(mtx) ~ coefs + 0)
-  list(mS=coefs,
+  m <- lm(t(m2) ~ coefs + 0)
+  list(channels=channels,
+       mS=unname(coefs),
        sdS=unname(apply(m$residuals,1,sd)/mean(m$coefficients)),
-       mI=mean(m$coefficients),
-       sdI=sd(m$coefficients))
+       mI=mean(e2db(m$coefficients)),
+       sdI=sd(e2db(m$coefficients)))
 }
 
-defaultFluorescenceChannels <- function(nms)
-  nms[!grepl("(fsc|ssc|fs0|ss0|time)",nms,ignore.case=T)]
+# decibels should be used for expressions everywhere
+e2db <- function(x) 10*log(x[x>0], base=10)
+db2e <- function(x) 10^(x/10)
+dbf <- function(x, unit='u')
+  paste0(round(x,2),' dB',unit)
 
-e2db <- function(x, unit='u')
-  paste0(round(10*log(x),2),' dB',unit)
+defaultFluorescenceChannels <- function(nms)
+  nms[!grepl("(fsc|ssc|fs0|ss0|time|comp)",nms,ignore.case=T)]
 
 spectrumPalette <- function(n=128, ...)
   colorspace::sequential_hcl(n = n, h = 114, c = c(0, 114, 0), l = c(100, 0), power = 1.1, ...)
@@ -40,5 +46,70 @@ plotSpectrum <- function(ms, sds, nms=names(ms), res=128) {
     ggplot2::scale_x_discrete(name=NULL) +
     ggplot2::scale_y_continuous(labels=NULL, name=NULL) +
     cowplot::theme_cowplot() +
-    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = .5))
 }
+
+plotSpectrumPNG <- function(ms, sds, res=32, x=512, y=32) {
+  shiny::img(width=x,height=y,style="image-rendering:crisp-edges",
+    src=paste0("data:image/png;base64,",openssl::base64_encode(png::writePNG(
+      array(t(col2rgb(spectrumPalette(1024)[1+as.integer(1023*sapply(seq_len(length(ms)),
+        function(i) sapply(seq(1,0,length.out=res),
+          function(j) pnorm(j,mean=ms[i],sd=sds[i]))))]))/255,dim=c(res,length(ms),3))))))
+}
+
+defaultMachines <- c('Aurora','Symphony','Fortessa II','BFC 9k')
+defaultSampleTypes <- c('Spleen (mouse)','Thymus (mouse)','PBMC (mouse)','Bone marrow (mouse)','Beads')
+defaultAntigens <- c(paste0('CD',1:9),'L/D','Unstained') 
+defaultFluorochromes <- c('Cy5', 'Cy5.5', 'Cy7', 'APC', 'FITC', 'PE', 'GFP', 'Unstained')
+
+spectrumMetadataForm <- function(prefix, spectra, selected=NULL, defaultAll=F, create=T, multiple=F) {
+  i <- function(x)paste0(prefix, x)
+  mkch <- function(fld, defaults=NULL)
+    nat.sort(unique(c(defaults, unlist(sapply(spectra, function(x) x[[fld]])))))
+
+  shiny::tagList(
+    shiny::selectizeInput(i('Machine'), "Cytometer model",
+      choices=mkch("machine", if(create) defaultMachines),
+      selected=if(defaultAll) mkch("machine"),
+      multiple=multiple, options=list(`create`=create)),
+    shiny::selectizeInput(i('MachineConfig'), "Cytometer Configuration",
+      choices=mkch("mconfig", if(create) "—"),
+      selected=if(defaultAll) mkch("mconfig"),
+      multiple=multiple, options=list(`create`=create)),
+    shiny::selectizeInput(i('SampleType'), "Sample origin/type",
+      choices=mkch("sample", if(create) defaultSampleTypes),
+      selected=if(defaultAll) mkch("sample"),
+      multiple=multiple, options=list(`create`=create)),
+    shiny::selectizeInput(i('Antigen'), "Antigen/Antibody",
+      choices=mkch("antigen", if(create) defaultAntigens),
+      selected=if(defaultAll) mkch("antigen"),
+      multiple=multiple, options=list(`create`=create)),
+    shiny::selectizeInput(i('Fluorochrome'), "Fluorochrome",
+      choices=mkch("fluorochrome", if(create) defaultFluorochromes),
+      selected=if(defaultAll) mkch("fluorochrome"),
+      multiple=multiple, options=list(`create`=create)),
+    shiny::selectizeInput(i('Note'), "Note",
+      choices=mkch("note", if(create) "—"),
+      selected=if(defaultAll) mkch("note"),
+      multiple=multiple, options=list(`create`=create)))
+}
+
+spectrumMetadataFormGather <- function(prefix, input) {
+  i <- function(x)paste0(prefix, x)
+  list(
+    machine=input[[i('Machine')]],
+    mconfig=input[[i('MachineConfig')]],
+    sample=input[[i('SampleType')]],
+    antigen=input[[i('Antigen')]],
+    fluorochrome=input[[i('Fluorochrome')]],
+    note=input[[i('Note')]])
+}
+
+#TODO: use this
+spectrumMetadataNames <- c(
+  machine='Machine',
+  mconfig='Configuration',
+  sample='Sample type',
+  antigen='Antigen',
+  fluorochrome='Fluorochrome',
+  note='Note')
