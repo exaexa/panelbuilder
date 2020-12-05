@@ -27,6 +27,12 @@ dbf <- function(x, unit='u')
 defaultFluorescenceChannels <- function(nms)
   nms[!grepl("(fsc|ssc|fs0|ss0|time|comp)",nms,ignore.case=T)]
 
+defaultFSCChannel <- function(nms)
+  nms[c(grepl("(fsc|fs0).*-a", nms, ignore.case=T),grepl("(fsc|fs0)", nms, ignore.case=T))][1]
+
+defaultSSCChannel <- function(nms)
+  nms[c(grepl("(ssc|ss0).*-a", nms, ignore.case=T),grepl("(ssc|ss0)", nms, ignore.case=T))][1]
+
 spectrumPalette <- function(n=128, ...)
   colorspace::sequential_hcl(n = n, h = 114, c = c(0, 114, 0), l = c(100, 0), power = 1.1, ...)
 

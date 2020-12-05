@@ -19,12 +19,95 @@ serveImportSpectra <- function(input, output, session, wsp) {
     data$fcsMtx <- m
   })
 
+  output$uiImportColumnPicker <- shiny::renderUI(
+    shiny::selectizeInput('importDataCols',
+      "Fluorescent channels",
+      multiple=T,
+      choices=colnames(data$fcsMtx),
+      selected=defaultFluorescenceChannels(nat.sort(colnames(data$fcsMtx))),
+      options=list(`actions-box`=TRUE)))
+
+  output$uiImportGate <- shiny::renderUI(shiny::tagList(
+    shiny::selectizeInput('importGateColX',
+      "Gate column X",
+      multiple=F,
+      choices=colnames(data$fcsMtx),
+      selected=defaultFSCChannel(colnames(data$fcsMtx))),
+    shiny::selectizeInput('importGateColY',
+      "Gate column Y",
+      multiple=F,
+      choices=colnames(data$fcsMtx),
+      selected=defaultSSCChannel(colnames(data$fcsMtx))),
+    shiny::plotOutput('plotImportGate',
+      width="20em",
+      height="20em",
+      brush=shiny::brushOpts('importGateBrush'))
+  ))
+
+  getGatedData <- function() {
+    if(is.null(data$fcsMtx)) return(NULL)
+    if(input$importGateColX=='' || input$importGateColY=='' || is.null(input$importGateBrush))
+      return(data$fcsMtx)
+    b <- input$importGateBrush
+    flt <-
+      data$fcsMtx[,input$importGateColX] >= b$xmin &
+      data$fcsMtx[,input$importGateColX] <= b$xmax &
+      data$fcsMtx[,input$importGateColY] >= b$ymin &
+      data$fcsMtx[,input$importGateColY] <= b$ymax
+    return(data$fcsMtx[flt,,drop=F])
+  }
+
+  output$plotImportGate <- shiny::renderPlot({
+    par(mar=c(0,0,0,0))
+    if(!is.null(data$fcsMtx) && input$importGateColX!='' && input$importGateColY!='') {
+      EmbedSOM::PlotEmbed(
+        data$fcsMtx[,c(input$importGateColX, input$importGateColY)],
+        fdens=log,
+        plotf=scattermore::scattermoreplot)
+    }
+  })
+
+  getPowerGatedData <- function() {
+    d <- getGatedData()
+    if(is.null(d)) return(NULL)
+    b <- input$importPowerBrush
+    if(is.null(b) || is.null(input$importDataCols)) return(d)
+    e <- e2db(sqrt(apply(d[,input$importDataCols,drop=F]^2,1,sum)))
+    flt <- e >= b$xmin & e<=b$xmax
+    return(d[flt,,drop=F])
+  }
+
+  output$uiImportPower <- shiny::renderUI(shiny::tagList(
+    shiny::h4('Fluorescent power distribution'),
+    shiny::plotOutput('plotImportPower',
+      width="20em",
+      height="10em",
+      brush=shiny::brushOpts('importPowerBrush'))
+  ))
+
+  output$plotImportPower <- shiny::renderPlot({
+    par(mar=c(2,2,0,0))
+    d <- getGatedData()
+    if(!is.null(d) && !is.null(input$importDataCols)) {
+      d <- e2db(sqrt(apply(d[,input$importDataCols,drop=F]^2,1,sum)))
+      xlim <- c(min(d),max(d))
+      d <- density(d, from=xlim[1], to=xlim[2])
+      xs <- c(xlim[1], d$x, xlim[2])
+      ys <- c(0, d$y, 0)
+      if(max(ys)>0) ys <- ys/max(ys)
+      plot(type='n', NULL, xlim=xlim, ylim=c(0,1))
+      polygon(xs,ys,lwd=2,col='#dddddd',border='#888888')
+    }
+  })
+
   observeEvent(input$doImportGetSpectrum, {
-    if(is.null(data$fcsMtx)) return()
+    d <- getPowerGatedData()
+    print(head(d))
+    if(is.null(d)) return()
     if(is.null(input$importDataCols)) return()
     cols <- nat.sort(input$importDataCols)
-    data$spectrum <- extractSpectrum(data$fcsMtx[,cols,drop=F])
-    #print(data$spectrum)
+    data$spectrum <- NULL
+    data$spectrum <- extractSpectrum(getPowerGatedData()[,cols,drop=F])
   })
 
   observeEvent(input$doImportSave, {
@@ -75,24 +158,18 @@ serveImportSpectra <- function(input, output, session, wsp) {
     else shiny::actionButton('doImportSave', "Save")
   )
 
-  output$uiImportColumnPicker <- shiny::renderUI(
-    shiny::selectizeInput('importDataCols',
-      "Fluorescent channels",
-      multiple=T,
-      choices=colnames(data$fcsMtx),
-      selected=shiny::isolate(
-        defaultFluorescenceChannels(nat.sort(colnames(data$fcsMtx)))),
-      options=list(`actions-box`=TRUE)))
-
   output$uiImportSpectra <- shiny::renderUI(shiny::tagList(
     shiny::h1("Import spectral profiles"),
     shiny::fluidRow(
-      shiny::column(8,style='min-width:20em',
-        shiny::fileInput('fileImportFCS', "Uplad an FCS file", accept='.fcs'),
+      shiny::column(4,style='min-width:20em',
+        shiny::fileInput('fileImportFCS', "Upload an FCS file", accept='.fcs'),
         shiny::uiOutput('uiImportColumnPicker'),
-        shiny::actionButton('doImportGetSpectrum', "Compute spectrum"),
-        shiny::uiOutput('uiImportResult')),
+        shiny::actionButton('doImportGetSpectrum', "Compute spectrum")),
+      shiny::column(4,style='min-width:20em',
+        shiny::uiOutput('uiImportGate'),
+        shiny::uiOutput('uiImportPower')),
       shiny::column(4,style='min-width:10em',
-        shiny::uiOutput('uiImportSave')))
+        shiny::uiOutput('uiImportSave'))),
+    shiny::uiOutput('uiImportResult')
   ))
 }
