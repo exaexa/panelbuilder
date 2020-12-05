@@ -2,20 +2,32 @@
 #' Extract the spectrum
 #'
 #' the spectra are scaled to the mI.
-extractSpectrum <- function(mtx) {
-  channels <- nat.sort(colnames(mtx))
-  m2 <- mtx[,channels,drop=F]
+extractSpectrum <- function(mtx, gate) {
+  m2 <- mtx[gate,,drop=F]
   a <- rowSums(m2)
-  # @importFrom MASS rlm
-  #scoefs <- apply(mtx,2,function(x) MASS::rlm(x ~ a+0)$coefficients)
-  scoefs <- lm(m2~a+0)$coefficients[,]
-  coefs <- scoefs / sqrt(sum(scoefs^2))
-  m <- lm(t(m2) ~ coefs + 0)
-  list(channels=channels,
-       mS=unname(coefs),
-       sdS=unname(apply(m$residuals,1,sd)/mean(m$coefficients)),
-       mI=mean(e2db(m$coefficients)),
-       sdI=sd(e2db(m$coefficients)))
+  # TODO: one day we should really use rlm
+  reg <- sapply(colnames(m2),
+    function(col) {
+      reg1 <- lm(m2[,col,drop=F]~a)
+      c(intercept=unname(reg1$coefficients['(Intercept)']),
+        val=unname(reg1$coefficients['a']),
+        sd=sd(reg1$residuals/a))
+    })
+  csc <- sqrt(sum(reg['val',]^2))
+  m2 <- t(mtx)-reg['intercept',]
+  sp <- reg['val',]/csc
+  reg2 <- lm(m2 ~ sp+0)
+  coefs <- reg2$coefficients[reg2$coefficients>0]
+  ress <- reg2$residuals[,reg2$coefficients>0,drop=F]
+  ws <- coefs^2/(1+apply(ress^2,2,sum))
+  e <- e2db(coefs)
+  wm <- sum(e*ws)/sum(ws)
+  wsd <- sqrt(sum((e-wm)^2*ws)/sum(ws))
+  list(channels=colnames(mtx),
+       mS=unname(reg['val',]/csc),
+       sdS=unname(reg['sd',]/csc),
+       mI=wm,
+       sdI=wsd)
 }
 
 # decibels should be used for expressions everywhere

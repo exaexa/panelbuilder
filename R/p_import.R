@@ -44,16 +44,22 @@ serveImportSpectra <- function(input, output, session, wsp) {
       brush=shiny::brushOpts('importGateBrush'))
   ))
 
-  getGatedData <- function() {
+  getGate <- function() {
     if(is.null(data$fcsMtx)) return(NULL)
     if(input$importGateColX=='' || input$importGateColY=='' || is.null(input$importGateBrush))
-      return(data$fcsMtx)
+      return(T)
     b <- input$importGateBrush
     flt <-
       data$fcsMtx[,input$importGateColX] >= b$xmin &
       data$fcsMtx[,input$importGateColX] <= b$xmax &
       data$fcsMtx[,input$importGateColY] >= b$ymin &
       data$fcsMtx[,input$importGateColY] <= b$ymax
+    return(flt)
+  }
+
+  getGatedData <- function() {
+    flt <- getGate()
+    if(is.null(flt)) flt <- T
     return(data$fcsMtx[flt,,drop=F])
   }
 
@@ -67,21 +73,20 @@ serveImportSpectra <- function(input, output, session, wsp) {
     }
   })
 
-  getPowerGatedData <- function() {
-    d <- getGatedData()
-    if(is.null(d)) return(NULL)
+  getPowerGate <- function() {
+    if(is.null(data$fcsMtx)) return(NULL)
     b <- input$importPowerBrush
-    if(is.null(b) || is.null(input$importDataCols)) return(d)
-    e <- e2db(sqrt(apply(d[,input$importDataCols,drop=F]^2,1,sum)))
+    if(is.null(b) || is.null(input$importDataCols)) return(T)
+    e <- e2db(sqrt(apply(data$fcsMtx[,input$importDataCols,drop=F]^2,1,sum)))
     flt <- e >= b$xmin & e<=b$xmax
-    return(d[flt,,drop=F])
+    return(flt)
   }
 
   output$uiImportPower <- shiny::renderUI(shiny::tagList(
     shiny::h4('Fluorescent power distribution'),
     shiny::plotOutput('plotImportPower',
       width="20em",
-      height="10em",
+      height="15em",
       brush=shiny::brushOpts('importPowerBrush'))
   ))
 
@@ -93,7 +98,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
       xlim <- c(min(d),max(d))
       d <- density(d, from=xlim[1], to=xlim[2])
       xs <- c(xlim[1], d$x, xlim[2])
-      ys <- c(0, d$y, 0)
+      ys <- c(0, sqrt(d$y), 0)
       if(max(ys)>0) ys <- ys/max(ys)
       plot(type='n', NULL, xlim=xlim, ylim=c(0,1))
       polygon(xs,ys,lwd=2,col='#dddddd',border='#888888')
@@ -101,13 +106,11 @@ serveImportSpectra <- function(input, output, session, wsp) {
   })
 
   observeEvent(input$doImportGetSpectrum, {
-    d <- getPowerGatedData()
-    print(head(d))
-    if(is.null(d)) return()
+    if(is.null(data$fcsMtx)) return()
     if(is.null(input$importDataCols)) return()
     cols <- nat.sort(input$importDataCols)
     data$spectrum <- NULL
-    data$spectrum <- extractSpectrum(getPowerGatedData()[,cols,drop=F])
+    data$spectrum <- extractSpectrum(data$fcsMtx[,cols,drop=F],getGate() & getPowerGate())
   })
 
   observeEvent(input$doImportSave, {
