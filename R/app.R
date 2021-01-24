@@ -65,7 +65,8 @@ window.onbeforeunload = function() {
       spectra='SpectraBrowser',
       reqs='PanelSetup',
       optimize='Optimizer',
-      export='Export'
+      export='Export',
+      unmix='Unmix'
     )
 
     mainPageServers <- lapply(mainPages,

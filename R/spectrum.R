@@ -45,8 +45,11 @@ defaultFSCChannel <- function(nms)
 defaultSSCChannel <- function(nms)
   nms[c(grepl("(ssc|ss0).*-a", nms, ignore.case=T),grepl("(ssc|ss0)", nms, ignore.case=T))][1]
 
-spectrumPalette <- function(n=128, ...)
-  colorspace::sequential_hcl(n = n, h = 114, c = c(0, 114, 0), l = c(100, 0), power = 1.1, ...)
+spectrumPalette <- grDevices::colorRampPalette(c('#44dd22','#ffddaa','#002040'))
+#spectrumPalette <- function(n=128, ...)
+  #colorspace::sequential_hcl(n=n, 'viridis', rev=T)
+  #colorRampPalette(c('#44dd22','white','black'))(n,...)
+  #colorspace::sequential_hcl(n = n, h = 114, c = c(0, 0, 114), l = c(0,100, 50), power = 1.1, ...)
 
 plotSpectrum <- function(ms, sds, nms=names(ms), res=128) {
   d <- sapply(seq_len(length(nms)), function(i)
