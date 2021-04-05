@@ -2,9 +2,10 @@
 #' Extract the spectrum
 #'
 #' the spectra are scaled to the mI.
-extractSpectrum <- function(mtx, gate) {
-  m2 <- mtx[gate,,drop=F]
-  a <- rowSums(m2)
+extractSpectrum <- function(mtx, gate, powerGate) {
+  m2 <- mtx[gate & powerGate,,drop=F]
+  a <- sqrt(rowSums(m2^2)) #TODO: energies?
+
   # TODO: one day we should really use rlm
   reg <- sapply(colnames(m2),
     function(col) {
@@ -13,24 +14,27 @@ extractSpectrum <- function(mtx, gate) {
         val=unname(reg1$coefficients['a']),
         sd=sd(reg1$residuals/a))
     })
-  csc <- sqrt(sum(reg['val',]^2))
-  m2 <- t(mtx)-reg['intercept',]
-  sp <- reg['val',]/csc
-  reg2 <- lm(m2 ~ sp+0)
-  coefs <- reg2$coefficients[reg2$coefficients>0]
-  ress <- reg2$residuals[,reg2$coefficients>0,drop=F]
-  ws <- coefs^2/(1+apply(ress^2,2,sum))
-  e <- e2db(coefs)
-  wm <- sum(e*ws)/sum(ws)
-  wsd <- sqrt(sum((e-wm)^2*ws)/sum(ws))
+
+  csc <- sqrt(sum(reg['val',]^2)) # normalization factor
+  sp <- reg['val',]/csc # normalized spectrum
+  m2 <- t(mtx[gate,,drop=F]) # matrix for guessing the intensity
+  reg2 <- lm(m2 ~ sp+0) # "unmix" using the single channel
+
+  coefs <- reg2$coefficients[reg2$coefficients>0] # get unmixed values
+  ress <- reg2$residuals[,reg2$coefficients>0,drop=F] #residuals
+
+  ws <- coefs^2/(coefs^2+apply(ress^2,2,sum)) # weights: how much of the energy is explained?
+  e <- e2db(coefs) # intensities in dB
+  wm <- sum(e*ws)/sum(ws) # weighted mean intensities
+  wsd <- sqrt(sum((e-wm)^2*ws)/sum(ws)) # weighted sdev of intensities
   list(channels=colnames(mtx),
-       mS=unname(reg['val',]/csc),
+       mS=unname(sp),
        sdS=unname(reg['sd',]/csc),
        mI=wm,
        sdI=wsd)
 }
 
-# decibels should be used for expressions everywhere
+# decibels should be used for intensities everywhere
 e2db <- function(x) 10*log(x[x>0], base=10)
 db2e <- function(x) 10^(x/10)
 dbf <- function(x, unit='u')
@@ -45,10 +49,12 @@ defaultFSCChannel <- function(nms)
 defaultSSCChannel <- function(nms)
   nms[c(grepl("(ssc|ss0).*-a", nms, ignore.case=T),grepl("(ssc|ss0)", nms, ignore.case=T))][1]
 
-spectrumPalette <- grDevices::colorRampPalette(c('#44dd22','#ffddaa','#002040'))
-#spectrumPalette <- function(n=128, ...)
+#spectrumPalette <- grDevices::colorRampPalette(c('#44dd22','#ffddaa','#002040'))
+spectrumPalette <- function(n=128, ...)
   #colorspace::sequential_hcl(n=n, 'viridis', rev=T)
   #colorRampPalette(c('#44dd22','white','black'))(n,...)
+  colorRampPalette(c('#44dd22','#ff8800','white'))(n,...)
+  #colorRampPalette(c('#338822','#ffcc88','black'))(n,...)
   #colorspace::sequential_hcl(n = n, h = 114, c = c(0, 0, 114), l = c(0,100, 50), power = 1.1, ...)
 
 plotSpectrum <- function(ms, sds, nms=names(ms), res=128) {
@@ -134,3 +140,8 @@ spectrumMetadataNames <- c(
   antigen='Antigen',
   fluorochrome='Fluorochrome',
   note='Note')
+
+spectrumExistsIn <- function(n, ss)
+  any(sapply(ss, function(x)
+    all(sapply(names(spectrumMetadataNames), function(nm)
+      n[[nm]]==x[[nm]]))))

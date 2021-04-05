@@ -4,7 +4,7 @@
 \alias{extractSpectrum}
 \title{Extract the spectrum}
 \usage{
-extractSpectrum(mtx, gate)
+extractSpectrum(mtx, gate, powerGate)
 }
 \description{
 the spectra are scaled to the mI.

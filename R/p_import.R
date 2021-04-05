@@ -96,7 +96,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
     if(!is.null(d) && !is.null(input$importDataCols)) {
       d <- e2db(sqrt(apply(d[,input$importDataCols,drop=F]^2,1,sum)))
       xlim <- c(min(d),max(d))
-      d <- density(d, from=xlim[1], to=xlim[2])
+      d <- density(d, from=xlim[1], to=xlim[2], bw=1)
       xs <- c(xlim[1], d$x, xlim[2])
       ys <- c(0, sqrt(d$y), 0)
       if(max(ys)>0) ys <- ys/max(ys)
@@ -110,7 +110,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
     if(is.null(input$importDataCols)) return()
     cols <- nat.sort(input$importDataCols)
     data$spectrum <- NULL
-    data$spectrum <- extractSpectrum(data$fcsMtx[,cols,drop=F],getGate() & getPowerGate())
+    data$spectrum <- extractSpectrum(data$fcsMtx[,cols,drop=F],getGate(), getPowerGate())
   })
 
   observeEvent(input$doImportSave, {
@@ -118,10 +118,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
     n <- c(
       spectrumMetadataFormGather('importForm', input),
       list(spectrum=data$spectrum))
-    if(any(sapply(wsp$spectra, function(x)
-      all(sapply(names(n),function(nm)
-        if(nm=='spectrum')TRUE else n[[nm]]==x[[nm]]))
-      ))) {
+    if(spectrumExistsIn(n, wsp$spectra)) {
       shiny::showNotification(type='error',
         "This spectrum already exists; use a different note to distinguish duplicates.")
       return ()

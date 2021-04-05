@@ -11,6 +11,8 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
     filter=NULL
   )
 
+  dynObservers <- list()
+
   output$uiSpectraTable <- shiny::renderUI(shiny::tagList(
     paste("Displayed spectra:", length(wsp$spectra[data$filter]),
           "out of", length(wsp$spectra)),
@@ -25,9 +27,23 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
           shiny::tags$th('Note'),
           shiny::tags$th('Channels'),
           shiny::tags$th('Intensity'),
-          shiny::tags$th('Spectrum')
+          shiny::tags$th('Spectrum'),
+          shiny::tags$th('Actions')
       )),
-      unname(lapply(wsp$spectra[data$filter], function(s)
+      unname(lapply(seq_len(length(wsp$spectra))[data$filter], function(sid) {
+        s <- wsp$spectra[[sid]]
+        rmName <- paste0('doSpectraRemove', sid)
+        if(is.null(dynObservers[[rmName]]))
+          dynObservers[[rmName]] <<- observeEvent(input[[rmName]],
+            {wsp$spectra <- wsp$spectra[-sid]})
+        toPanelName <- paste0('doSpectraToPanel', sid)
+        if(is.null(dynObservers[[toPanelName]]))
+          dynObservers[[toPanelName]] <<- observeEvent(input[[toPanelName]], {
+            if(spectrumExistsIn(wsp$spectra[[sid]], wsp$panelSpectra))
+              shiny::showNotification(type='error', "Spectrum already in panel")
+            else
+              wsp$panelSpectra <- c(wsp$panelSpectra, list(wsp$spectra[[sid]]))
+          })
         shiny::tags$tr(
           shiny::tags$td(s$machine),
           shiny::tags$td(s$mconfig),
@@ -41,7 +57,11 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
             plotSpectrumPNG(
               s$spectrum$mS,
               s$spectrum$sdS,
-              res=48, x=320, y=48)))
+              res=48, x=320, y=48)),
+          shiny::tags$td(
+            shiny::actionButton(toPanelName, "→panel"),
+            shiny::actionButton(rmName, "×")))
+      }
     ))))
   ))
 
