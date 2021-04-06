@@ -74,7 +74,9 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
   })
 
   observeEvent(wsp$panelSpectra, {
-    #TODO: clean up panelAssignments
+    a <- cleanAssignments(wsp)
+    if(length(a) < length(wsp$panelAssignments))
+      wsp$panelAssignments <- a
   })
 
   observeEvent(input$doSpectraFilter, {

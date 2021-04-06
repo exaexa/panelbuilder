@@ -1,10 +1,4 @@
 
-panelAntigens <- function(wsp)
-  nat.sort(unique(sapply(wsp$panelSpectra, function(x)x$antigen)))
-
-panelFluorochromes <- function(wsp)
-  nat.sort(unique(sapply(wsp$panelSpectra, function(x)x$fluorochrome)))
-
 menuPanelSetup <- function(input,output,session,wsp) {
   output$menuPanelSetup <- shiny::renderUI(
     paste0("Panel setup (",length(panelAntigens(wsp)),"AGs, ",length(panelFluorochromes(wsp)),"FCs)")
@@ -78,8 +72,13 @@ servePanelSetup <- function(input, output, session, wsp) {
     wsp$panelAssignment <- list()
   })
 
+  observeEvent(input$doPanelInfo, {
+    print(getUnmixingInfo(wsp))
+  })
+
   output$uiPanelSetup <- shiny::renderUI(shiny::tagList(
-    shiny::h1("Panel setup and requirements"),
-    shiny::uiOutput('uiPanelTable')
+    shiny::h1("Panel setup"),
+    shiny::uiOutput('uiPanelTable'),
+    shiny::actionButton('doPanelInfo', 'debug panel info')
   ))
 }
