@@ -110,7 +110,13 @@ serveImportSpectra <- function(input, output, session, wsp) {
     if(is.null(input$importDataCols)) return()
     cols <- nat.sort(input$importDataCols)
     data$spectrum <- NULL
-    data$spectrum <- extractSpectrum(data$fcsMtx[,cols,drop=F],getGate(), getPowerGate())
+    tryCatch(
+      data$spectrum <- extractSpectrum(
+        data$fcsMtx[,cols,drop=F],
+        getGate(), getPowerGate()),
+      error=function(e)
+        shiny::showNotification(type='error',
+          paste("Spectrum import failed:", e)))
   })
 
   observeEvent(input$doImportSave, {

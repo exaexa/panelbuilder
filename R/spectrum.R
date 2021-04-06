@@ -142,9 +142,7 @@ spectrumMetadataNames <- c(
   note='Note')
 
 spectrumExistsIn <- function(n, ss, fields=names(spectrumMetadataNames))
-  any(sapply(ss, function(x)
-    all(sapply(names(spectrumMetadataNames), function(nm)
-      n[[nm]]==x[[nm]]))))
+  any(sapply(ss, function(x) all(sapply(fields, function(nm) n[[nm]]==x[[nm]]))))
 
 spectrumFind <- function(ss, fields=list())
   for(s in ss)

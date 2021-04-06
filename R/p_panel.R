@@ -21,7 +21,7 @@ servePanelSetup <- function(input, output, session, wsp) {
                      else
                        "spectrum"
       idx <- which(unlist(lapply(wsp$panelSpectra,
-        function(s) s$fluorochrome==fc & s$antigen==ag)))
+        function(s) s$fluorochrome==fc && s$antigen==ag)))
 
       setName <- paste0('doPanelSet', fcid, 'x', agid)
       if(is.null(dynObservers[[setName]]))
@@ -36,7 +36,7 @@ servePanelSetup <- function(input, output, session, wsp) {
           fc <- panelFluorochromes(wsp)[fcid]
           ag <- panelAntigens(wsp)[agid]
           idx <- which(unlist(lapply(wsp$panelSpectra,
-            function(s) s$fluorochrome==fc & s$antigen==ag)))
+            function(s) s$fluorochrome==fc && s$antigen==ag)))
           wsp$panelSpectra <- wsp$panelSpectra[-idx]
         })
       if(length(idx)==0) shiny::tags$td(shiny::div(class=paste('spectrumDerived', selectedCls), "×"))

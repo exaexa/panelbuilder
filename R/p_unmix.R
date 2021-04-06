@@ -20,12 +20,13 @@ serveUnmix <- function(input, output, session, wsp) {
     data$inputMtx <- NULL
     data$inputName <- character(0)
     data$outputMtx <- NULL
-    m <- flowCore::read.FCS(input$fileUnmixFCS$datapath)@exprs
+    shiny::withProgress({
+      m <- flowCore::read.FCS(input$fileUnmixFCS$datapath)@exprs
+      setProgress(1)
+    }, message="Loading FCS...")
     colnames(m) <- unname(colnames(m))
     data$inputMtx <- m
     data$inputName <- input$fileUnmixFCS$name
-    print(head(m))
-    print(summary(m))
   })
 
   output$uiUnmixControl <- shiny::renderUI(if(!is.null(data$inputMtx)) shiny::tagList(
@@ -51,11 +52,14 @@ serveUnmix <- function(input, output, session, wsp) {
 
   observeEvent(input$doUnmix,
     if(!is.null(data$inputMtx))
-      data$outputMtx <- doUnmix(data$inputMtx, getUnmixingInfo(wsp),
-        input$unmixIncludeFluorochromes,
-        input$unmixIncludeOriginals,
-        input$unmixIncludeResiduals,
-        input$unmixIncludeRMSE))
+      shiny::withProgress({
+        data$outputMtx <- doUnmix(data$inputMtx, getUnmixingInfo(wsp),
+          input$unmixIncludeFluorochromes,
+          input$unmixIncludeOriginals,
+          input$unmixIncludeResiduals,
+          input$unmixIncludeRMSE)
+        shiny::setProgress(1)
+      }, message="Unmixing..."))
 
   output$downloadUnmixFCS <- shiny::downloadHandler(
     filename=function() paste0("pbUnmixed_",data$inputName),
@@ -63,9 +67,35 @@ serveUnmix <- function(input, output, session, wsp) {
   )
 
   output$uiUnmixPreview <- shiny::renderUI(if(!is.null(data$outputMtx)) shiny::tagList(
-    shiny::h3(paste("Unmixed output of size ",nrow(data$outputMtx),ncol(data$outputMtx))),
-    shiny::downloadButton('downloadUnmixFCS', "Download unmixed FCS")
+    shiny::h3("Unmixed result"),
+    shiny::downloadButton('downloadUnmixFCS', "Download unmixed FCS"),
+    shiny::fluidRow(
+      shiny::column(4,
+        shiny::selectizeInput('unmixPlotX',
+          "Preview column X",
+          multiple=F,
+          choices=colnames(data$outputMtx),
+          selected=defaultFSCChannel(colnames(data$outputMtx))),
+        shiny::selectizeInput('unmixPlotY',
+          "Preview column Y",
+          multiple=F,
+          choices=colnames(data$outputMtx),
+          selected=defaultSSCChannel(colnames(data$outputMtx)))),
+      shiny::column(8,
+        shiny::plotOutput('plotUnmix',
+          width="30em",
+          height="30em")))
   ))
+
+  output$plotUnmix <- shiny::renderPlot({
+    par(mar=c(0,0,0,0))
+    if(!is.null(data$outputMtx) && input$unmixPlotX!='' && input$unmixPlotY!='') {
+      EmbedSOM::PlotEmbed(
+        data$outputMtx[,c(input$unmixPlotX, input$unmixPlotY)],
+        fdens=log,
+        plotf=scattermore::scattermoreplot)
+    }
+  })
 
   output$uiUnmix <- shiny::renderUI(shiny::tagList(
     shiny::h1("Unmixing"),
