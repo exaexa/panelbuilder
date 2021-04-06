@@ -38,6 +38,7 @@ servePanelSetup <- function(input, output, session, wsp) {
           idx <- which(unlist(lapply(wsp$panelSpectra,
             function(s) s$fluorochrome==fc && s$antigen==ag)))
           wsp$panelSpectra <- wsp$panelSpectra[-idx]
+          wsp$panelAssignments <- cleanAssignments(wsp)
         })
       if(length(idx)==0) shiny::tags$td(shiny::div(class=paste('spectrumDerived', selectedCls), "×"))
       else shiny::tags$td(shiny::div(class=paste('spectrumMeasured', selectedCls),

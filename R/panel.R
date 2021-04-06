@@ -43,17 +43,21 @@ matchingChans <- function(mtx, ui) {
 
 doUnmix <- function(mtx, ui, fcNames=T, inclOrigs=F, inclResiduals=F, inclRmse=T) {
   mc <- matchingChans(mtx, ui)
+  if(length(mc)==0) stop("No matching channels!")
   # TODO: error on mismatch
   umtx <- t(mtx[,colnames(mtx) %in% mc])
   umSs <- ui$mSs[ui$channels %in% mc,]
   # TODO: add variants that consider sdS and absolute intensities
   u <- lm(umtx~umSs+0) #TODO: weights
+
   res <- mtx
   
   if(!inclOrigs) res <- res[,!(colnames(res) %in% mc)]
   
   umxd <- t(u$coefficients)
-  colnames(umxd) <- if(fcNames) paste0(ui$antigens, " <", ui$fluorochromes, ">") else ui$antigens
+  colnames(umxd) <-
+    if(fcNames) paste0(ui$antigens, " <", ui$fluorochromes, ">")
+    else ui$antigens
   res <- cbind(res, umxd)
   
   if(inclResiduals) {
