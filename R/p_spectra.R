@@ -44,8 +44,14 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
                 paste0(wsp$spectra[[sid]]$antigen,"/",wsp$spectra[[sid]]$fluorochrome," already in panel"))
             else {
               wsp$panelSpectra <- c(wsp$panelSpectra, list(wsp$spectra[[sid]]))
+              defaulted <- F
+              if(is.null(wsp$panelAssignment[[wsp$spectra[[sid]]$antigen]])) {
+                defaulted <- T
+                wsp$panelAssignment[[wsp$spectra[[sid]]$antigen]] <- wsp$spectra[[sid]]$fluorochrome
+              }
               shiny::showNotification(type='message',
-                paste0(wsp$spectra[[sid]]$antigen,"/",wsp$spectra[[sid]]$fluorochrome," added"))
+                paste0(wsp$spectra[[sid]]$antigen,"/",wsp$spectra[[sid]]$fluorochrome," added",
+                  if(defaulted) " (as default)"))
             }
           })
         shiny::tags$tr(
