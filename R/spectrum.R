@@ -17,7 +17,7 @@ extractSpectrum <- function(mtx, gate, powerGate) {
 
   csc <- sqrt(sum(reg['val',]^2)) # normalization factor
   sp <- reg['val',]/csc # normalized spectrum
-  m2 <- t(mtx[gate,,drop=F]) # matrix for guessing the intensity
+  m2 <- t(mtx[gate,,drop=F])#-reg['intercept',] # matrix for guessing the intensity (intercept removed)
   reg2 <- lm(m2 ~ sp+0) # "unmix" using the single channel
 
   coefs <- reg2$coefficients[reg2$coefficients>0] # get unmixed values
@@ -132,7 +132,7 @@ spectrumMetadataFormGather <- function(prefix, input) {
     note=input[[i('Note')]])
 }
 
-#TODO: use this
+#TODO: use this everywhere
 spectrumMetadataNames <- c(
   machine='Machine',
   mconfig='Configuration',
@@ -141,7 +141,7 @@ spectrumMetadataNames <- c(
   fluorochrome='Fluorochrome',
   note='Note')
 
-spectrumExistsIn <- function(n, ss)
+spectrumExistsIn <- function(n, ss, fields=names(spectrumMetadataNames))
   any(sapply(ss, function(x)
     all(sapply(names(spectrumMetadataNames), function(nm)
       n[[nm]]==x[[nm]]))))

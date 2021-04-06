@@ -5,14 +5,9 @@ menuUnmix <- function(input,output,session,wsp) {
 
 serveUnmix <- function(input, output, session, wsp) {
   data <- shiny::reactiveValues(
-    inputFcs = NULL,
-    spectra = NULL,
+    inputMtx = NULL,
     outputMtx = NULL
   )
-
-  output$uiUnmixSelSpectra <- shiny::renderUI(shiny::tagList(
-    shiny::h3("Add spectra")
-  ))
 
   output$uiUnmixControl <- shiny::renderUI(shiny::tagList(
     shiny::h3("Raw file input"),
@@ -24,7 +19,6 @@ serveUnmix <- function(input, output, session, wsp) {
   output$uiUnmixPreview <- shiny::renderUI(shiny::tagList(
     shiny::h3("Unmixed output")
   ))
-
 
   output$uiUnmix <- shiny::renderUI(shiny::tagList(
     shiny::h1("Unmixing"),

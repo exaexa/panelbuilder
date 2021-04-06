@@ -39,10 +39,14 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
         toPanelName <- paste0('doSpectraToPanel', sid)
         if(is.null(dynObservers[[toPanelName]]))
           dynObservers[[toPanelName]] <<- observeEvent(input[[toPanelName]], {
-            if(spectrumExistsIn(wsp$spectra[[sid]], wsp$panelSpectra))
-              shiny::showNotification(type='error', "Spectrum already in panel")
-            else
+            if(spectrumExistsIn(wsp$spectra[[sid]], wsp$panelSpectra, fields=c('antigen','fluorochrome')))
+              shiny::showNotification(type='error',
+                paste0(wsp$spectra[[sid]]$antigen,"/",wsp$spectra[[sid]]$fluorochrome," already in panel"))
+            else {
               wsp$panelSpectra <- c(wsp$panelSpectra, list(wsp$spectra[[sid]]))
+              shiny::showNotification(type='message',
+                paste0(wsp$spectra[[sid]]$antigen,"/",wsp$spectra[[sid]]$fluorochrome," added"))
+            }
           })
         shiny::tags$tr(
           shiny::tags$td(s$machine),
@@ -67,6 +71,10 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
 
   observeEvent(wsp$spectra, {
     data$filter <- unlist(sapply(wsp$spectra, function(x)T))
+  })
+
+  observeEvent(wsp$panelSpectra, {
+    #TODO: clean up panelAssignments
   })
 
   observeEvent(input$doSpectraFilter, {

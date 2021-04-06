@@ -17,7 +17,13 @@ panelBuildeR <- function(...) {
 window.onbeforeunload = function() {
     return 'Are you sure you want to quit? All unsaved changes will be lost!';
 };")),
-      shiny::tags$style(shiny::HTML("")), #TODO: add style if required
+      shiny::tags$style(shiny::HTML("
+.spectrumCovered { background-color: #dfb; }
+.spectrumMeasured { background-color:#bdf; border-radius:4pt; }
+.spectrumDerived { border-radius:4pt; }
+.spectrum { padding:4pt; }
+.spectrumSelected { border: 2pt solid black; padding: 2pt; }
+")), #TODO: add style here if required
       shiny::tags$title("panelBuildeR")),
 
     shiny::fluidRow(style="margin-bottom:3em",
@@ -32,7 +38,8 @@ window.onbeforeunload = function() {
     wsp <- shiny::reactiveValues(
       page='import',
       spectra=list(),
-      panelSpectra=list()
+      panelSpectra=list(),
+      panelAssignment=list()
     )
 
     mainPages <- list(
