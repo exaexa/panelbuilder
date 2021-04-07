@@ -8,3 +8,9 @@ timestamp <- function()
 
 ilDiv <- function(..., style='') shiny::div(
   style=paste0('display: inline-block;', style), ...)
+
+indexin <- function(idx, arr) {
+  tmp <- seq_len(length(arr))
+  names(tmp) <- arr
+  unname(tmp[idx])
+}

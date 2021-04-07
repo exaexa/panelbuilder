@@ -31,8 +31,8 @@ getUnmixingInfo <- function(wsp) {
     antigens=sapply(ss, function(s) s$antigen),
     fluorochromes=sapply(ss, function(s) s$fluorochrome), #informative-only
     channels=chs,
-    mSs=sapply(ss, function(s) s$spectrum$mS[seq_len(slen)[s$spectrum$channels %in% chs]]),
-    sdSs=sapply(ss, function(s) s$spectrum$sdS[seq_len(slen)[s$spectrum$channels %in% chs]]),
+    mSs=sapply(ss, function(s) s$spectrum$mS[indexin(chs, s$spectrum$channels)]),
+    sdSs=sapply(ss, function(s) s$spectrum$sdS[indexin(chs, s$spectrum$channels)]),
     mIs=sapply(ss, function(s) s$spectrum$mI),
     sdIs=sapply(ss, function(s) s$spectrum$sdI))
 }
@@ -45,14 +45,14 @@ doUnmix <- function(mtx, ui, fcNames=T, inclOrigs=F, inclResiduals=F, inclRmse=T
   mc <- matchingChans(mtx, ui)
   if(length(mc)==0) stop("No matching channels!")
   # TODO: error on mismatch
-  umtx <- t(mtx[,colnames(mtx) %in% mc])
-  umSs <- ui$mSs[ui$channels %in% mc,]
+  umtx <- t(mtx[,indexin(mc, colnames(mtx))])
+  umSs <- ui$mSs[indexin(mc, ui$channels),]
   # TODO: add variants that consider sdS and absolute intensities
-  u <- lm(umtx~umSs+0) #TODO: weights
+  u <- lm(umtx~umSs+0, weights=sqrt(rowSums(umSs^2)))
 
   res <- mtx
   
-  if(!inclOrigs) res <- res[,!(colnames(res) %in% mc)]
+  if(!inclOrigs) res <- res[,-indexin(mc, colnames(res))]
   
   umxd <- t(u$coefficients)
   colnames(umxd) <-

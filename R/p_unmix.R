@@ -8,6 +8,7 @@ serveUnmix <- function(input, output, session, wsp) {
     inputMtx = NULL,
     inputName = NULL,
     outputMtx = NULL,
+    outputColnames = NULL,
     postCompensation = NULL,
     postCompHistory = list(),
     postCompPts = NULL
@@ -23,6 +24,7 @@ serveUnmix <- function(input, output, session, wsp) {
     data$inputMtx <- NULL
     data$inputName <- character(0)
     data$outputMtx <- NULL
+    data$outputColnames <- NULL
     shiny::withProgress({
       m <- flowCore::read.FCS(input$fileUnmixFCS$datapath)@exprs
       setProgress(1)
@@ -37,7 +39,7 @@ serveUnmix <- function(input, output, session, wsp) {
     shiny::div(shiny::strong("Loaded: "), data$inputName, paste0("(", nrow(data$inputMtx), " events)")),
     {
       mcs <- matchingChans(data$inputMtx, getUnmixingInfo(wsp))
-      umcs <- colnames(data$inputMtx)[!colnames(data$inputMtx) %in% mcs]
+      umcs <- nat.sort(colnames(data$inputMtx)[!colnames(data$inputMtx) %in% mcs])
       shiny::tagList(
         do.call(shiny::div, c(
           list(shiny::strong(paste0("Unmixing channels (",length(mcs),"):"))),
@@ -64,51 +66,80 @@ serveUnmix <- function(input, output, session, wsp) {
             input$unmixIncludeRMSE),
           error=function(e) shiny::showNotification(type='error',
             paste("Unmixing failed:", e)))
+          data$outputColnames <- colnames(data$outputMtx)
         shiny::setProgress(1)
       }, message="Unmixing..."))
 
-  output$uiUnmixPreview <- shiny::renderUI(if(!is.null(data$outputMtx)) shiny::tagList(
-    shiny::h3("Unmixed result"),
+  output$uiUnmixPreview <- shiny::renderUI(shiny::tagList(
+    shiny::h3("Result preview"),
     shiny::fluidRow(
       shiny::column(4,
-        shiny::selectizeInput('unmixPlotX',
-          "Preview column X",
-          multiple=F,
-          choices=colnames(data$outputMtx),
-          selected=defaultFSCChannel(colnames(data$outputMtx))),
-        shiny::checkboxInput('unmixAsinhX',
-          "Transform X",
-          value=F),
-        shiny::sliderInput('unmixCofX',
-          "Cofactor X (dB)",,
-          min=-10, max=80, step=1, value=27),
-        shiny::selectizeInput('unmixPlotY',
-          "Preview column Y",
-          multiple=F,
-          choices=colnames(data$outputMtx),
-          selected=defaultSSCChannel(colnames(data$outputMtx))),
-        shiny::checkboxInput('unmixAsinhY',
-          "Transform Y",
-          value=F),
-        shiny::sliderInput('unmixCofY',
-          "Cofactor Y (dB)",,
-          min=-10, max=80, step=1, value=27)),
+        shiny::uiOutput('uiUnmixPlotOpts')),
       shiny::column(4, 
         shiny::h4("Data preview"),
-        shiny::plotOutput('plotUnmix',
-          width="30em",
-          height="30em",
-          click='clickUnmixPlot')),
+        shiny::uiOutput('uiUnmixPlot'),
+        shiny::sliderInput('unmixPlotAlpha', "Point alpha",
+          min=0, max=1, step=0.01, value=0.5)),
       shiny::column(4,
-        shiny::h4("Level tool"),
-        shiny::uiOutput('uiUnmixLevelTool'),
+        shiny::radioButtons('unmixTool',
+          "Tool",
+          choices=c(`Leveling tool`='level', `Gating`='gate'),
+          selected='level'),
+        shiny::uiOutput('uiUnmixTools'),
         shiny::h4("Results"),
         shiny::downloadButton('downloadUnmixFCS', "Download unmixed FCS")))
+  ))
+
+  output$uiUnmixPlotOpts <- shiny::renderUI(if(!is.null(data$outputColnames)) shiny::tagList(
+    shiny::selectizeInput('unmixPlotX',
+      "Preview column X",
+      multiple=F,
+      choices=data$outputColnames,
+      selected=defaultFSCChannel(data$outputColnames)),
+    shiny::checkboxInput('unmixAsinhX',
+      "Transform X",
+      value=F),
+    shiny::sliderInput('unmixCofX',
+      "Cofactor X (dB)",,
+      min=-10, max=80, step=1, value=30),
+    shiny::selectizeInput('unmixPlotY',
+      "Preview column Y",
+      multiple=F,
+      choices=data$outputColnames,
+      selected=defaultSSCChannel(data$outputColnames)),
+    shiny::checkboxInput('unmixAsinhY',
+      "Transform Y",
+      value=F),
+    shiny::sliderInput('unmixCofY',
+      "Cofactor Y (dB)",,
+      min=-10, max=80, step=1, value=30),
+    shiny::selectizeInput('unmixPlotCol',
+      "Preview column color",
+      multiple=F,
+      choices=c('(Density)', data$outputColnames),
+      selected='(Density)'),
+    shiny::checkboxInput('unmixAsinhCol',
+      "Transform Color",
+      value=F),
+    shiny::sliderInput('unmixCofCol',
+      "Cofactor color (dB)",,
+      min=-10, max=80, step=1, value=30)
+  ))
+
+  output$uiUnmixPlot <- shiny::renderUI(if(!is.null(data$outputMtx)) shiny::tagList(
+    shiny::plotOutput('plotUnmix',
+      width="30em",
+      height="30em",
+      click=if(input$unmixTool=='level') 'clickUnmixPlot' else NULL,
+      brush=if(input$unmixTool=='gate') shiny::brushOpts('brushUnmixPlot')),
+    if(!is.null(data$outputMtx))
+      shiny::div(paste0("(", nrow(data$outputMtx), " events)"))
   ))
 
   getTransFns <- function() list(
     tx = if(input$unmixAsinhX) function(v)asinh(v/db2e(input$unmixCofX)) else identity,
     ty = if(input$unmixAsinhY) function(v)asinh(v/db2e(input$unmixCofY)) else identity,
+    tc = if(input$unmixAsinhCol) function(v)asinh(v/db2e(input$unmixCofCol)) else identity,
     itx = if(input$unmixAsinhX) function(v)sinh(v)*db2e(input$unmixCofX) else identity,
     ity = if(input$unmixAsinhY) function(v)sinh(v)*db2e(input$unmixCofY) else identity)
 
@@ -116,14 +147,16 @@ serveUnmix <- function(input, output, session, wsp) {
     if(is.null(data$postCompensation)) data$outputMtx
     else data$outputMtx %*% data$postCompensation
 
-  output$uiUnmixLevelTool <- renderUI(shiny::tagList(
+  output$uiUnmixTools <- shiny::renderUI(if(input$unmixTool=='level') shiny::tagList(
     shiny::div("the tool aligns the selected × cross to the level of + cross"),
     ilDiv(
       shiny::actionButton('doUnmixLevelH', "═"),
       shiny::actionButton('doUnmixLevelV', "‖"),
       shiny::actionButton('doUnmixLevelUndo', "Undo"),
-      shiny::actionButton('doUnmixLevelReset', "Reset"))
-  ))
+      shiny::actionButton('doUnmixLevelReset', "Reset")))
+    else ilDiv(
+      shiny::actionButton('doUnmixGateIn', "Keep only gate"),
+      shiny::actionButton('doUnmixGateOut', "Remove gate")))
 
   observeEvent(input$doUnmixLevelReset, {
     data$postCompensation <- diag(1, ncol(data$outputMtx))
@@ -134,9 +167,7 @@ serveUnmix <- function(input, output, session, wsp) {
   })
 
   observeEvent(input$doUnmixLevelUndo, if(length(data$postCompHistory)>0) {
-    print(data$postCompHistory)
     data$postCompensation <- data$postCompHistory[[1]]
-    print(data$postCompensation)
     data$postCompHistory <- data$postCompHistory[-1]
   })
 
@@ -186,6 +217,19 @@ serveUnmix <- function(input, output, session, wsp) {
     doAlign(src, dst)
   })
 
+  doGate <- function(b, inv) if(!is.null(b)) {
+    ts <- getTransFns()
+    flt <- xor(inv,
+      data$outputMtx[,input$unmixPlotX] >= ts$itx(b$xmin) &
+      data$outputMtx[,input$unmixPlotX] <= ts$itx(b$xmax) &
+      data$outputMtx[,input$unmixPlotY] >= ts$ity(b$ymin) &
+      data$outputMtx[,input$unmixPlotY] <= ts$ity(b$ymax))
+    data$outputMtx <- data$outputMtx[flt,,drop=F]
+  }
+
+  observeEvent(input$doUnmixGateIn, doGate(input$brushUnmixPlot, F))
+  observeEvent(input$doUnmixGateOut, doGate(input$brushUnmixPlot, T))
+
   output$plotUnmix <- shiny::renderPlot({
     ts <- getTransFns()
     d <- getCompData()
@@ -193,9 +237,16 @@ serveUnmix <- function(input, output, session, wsp) {
     if(!is.null(data$outputMtx) && input$unmixPlotX!='' && input$unmixPlotY!='') {
       EmbedSOM::PlotEmbed(
         cbind(ts$tx(d[,input$unmixPlotX]), ts$ty(d[,input$unmixPlotY])),
-        fdens=log, #TODO: really?
+        data=if(input$unmixPlotCol=='(Density)') NULL else cbind(ts$tc(d[,input$unmixPlotCol])),
+        val=if(input$unmixPlotCol=='(Density)') 0 else 1,
+        alpha=input$unmixPlotAlpha,
         plotf=scattermore::scattermoreplot)
-      points(ts$tx(rev(data$postCompPts[,1])),ts$ty(rev(data$postCompPts[,2])), cex=4, lwd=4, pch=c(4,3), col='#00cc00')
+      abline(h=0)
+      abline(v=0)
+      if(input$unmixTool=='level') points(
+          ts$tx(rev(data$postCompPts[,1])),
+          ts$ty(rev(data$postCompPts[,2])),
+          cex=4, lwd=4, pch=c(4,3), col='#00cc00')
     }
   })
 

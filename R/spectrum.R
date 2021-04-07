@@ -4,20 +4,17 @@
 #' the spectra are scaled to the mI.
 extractSpectrum <- function(mtx, gate, powerGate) {
   m2 <- mtx[gate & powerGate,,drop=F]
-  a <- sqrt(rowSums(m2^2)) #TODO: energies?
+  #a <- sqrt(rowSums(m2^2)) #TODO: this may be totally wrong
+  a <- rowSums(m2)
 
-  # TODO: one day we should really use rlm
-  reg <- sapply(colnames(m2),
-    function(col) {
-      reg1 <- lm(m2[,col,drop=F]~a)
-      c(intercept=unname(reg1$coefficients['(Intercept)']),
-        val=unname(reg1$coefficients['a']),
-        sd=sd(reg1$residuals/a))
-    })
+  reg <- lm(m2~a)
 
-  csc <- sqrt(sum(reg['val',]^2)) # normalization factor
-  sp <- reg['val',]/csc # normalized spectrum
-  m2 <- t(mtx[gate,,drop=F])#-reg['intercept',] # matrix for guessing the intensity (intercept removed)
+  csc <- sqrt(sum(reg$coefficients['a',]^2)) # normalization factor
+  sp <- reg$coefficients['a',]/csc # normalized spectrum
+  sp[sp<0] <- 0 # clamp negatives (TODO: is this bias?)
+  sds <- apply(reg$residuals/sqrt(rowSums(reg$fitted.values^2)),2,sd) * sp # residuals in channels
+
+  m2 <- t(mtx[gate,,drop=F])-reg$coefficients['(Intercept)',] # matrix for guessing the intensity (intercept removed)
   reg2 <- lm(m2 ~ sp+0) # "unmix" using the single channel
 
   coefs <- reg2$coefficients[reg2$coefficients>0] # get unmixed values
@@ -29,7 +26,7 @@ extractSpectrum <- function(mtx, gate, powerGate) {
   wsd <- sqrt(sum((e-wm)^2*ws)/sum(ws)) # weighted sdev of intensities
   list(channels=colnames(mtx),
        mS=unname(sp),
-       sdS=unname(reg['sd',]/csc),
+       sdS=unname(sds),
        mI=wm,
        sdI=wsd)
 }
@@ -86,7 +83,7 @@ plotSpectrumPNG <- function(ms, sds, res=32, x=512, y=32) {
 
 defaultMachines <- c('Aurora','Symphony','Fortessa II','BFC 9k')
 defaultSampleTypes <- c('Spleen (mouse)','Thymus (mouse)','PBMC (mouse)','Bone marrow (mouse)','Beads')
-defaultAntigens <- c(paste0('CD',1:9),'L/D','Unstained') 
+defaultAntigens <- c(paste0('CD',1:300), 'L/D','Unstained')
 defaultFluorochromes <- c('Cy5', 'Cy5.5', 'Cy7', 'APC', 'FITC', 'PE', 'GFP', 'Unstained')
 
 spectrumMetadataForm <- function(prefix, spectra, selected=NULL, defaultAll=F, create=T, multiple=F) {

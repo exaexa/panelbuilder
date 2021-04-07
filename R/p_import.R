@@ -87,7 +87,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
     shiny::plotOutput('plotImportPower',
       width="20em",
       height="15em",
-      brush=shiny::brushOpts('importPowerBrush'))
+      brush=shiny::brushOpts('importPowerBrush', direction='x'))
   ))
 
   output$plotImportPower <- shiny::renderPlot({
