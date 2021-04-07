@@ -143,7 +143,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
     if(is.null(data$spectrum)) "No spectrum computed"
     else shiny::tagList(
       paste0("Mean fluorescent intensity: ", dbf(data$spectrum$mI),
-             ", signal: ", dbf(2*data$spectrum$sdI,'')),
+             ", signal σ: ", dbf(data$spectrum$sdI,'')),
       shiny::plotOutput('plotImportSpectra', width='100%', height='40ex')
     )
   ))
