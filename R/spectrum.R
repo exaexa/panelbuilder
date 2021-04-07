@@ -9,19 +9,18 @@ extractSpectrum <- function(mtx, gate, powerGate) {
 
   reg <- lm(m2~a)
 
-  csc <- sqrt(sum(reg$coefficients['a',]^2)) # normalization factor
-  sp <- reg$coefficients['a',]/csc # normalized spectrum
+  sp <- reg$coefficients['a',]
   sp[sp<0] <- 0 # clamp negatives (TODO: is this bias?)
-  sds <- apply(reg$residuals/sqrt(rowSums(reg$fitted.values^2)),2,sd) * sp # residuals in channels
+  if(max(sp)==0) stop("Spectrum extraction problem: all coefficients non-positive.")
+  sp <- sp/sqrt(sum(sp^2)) # normalized spectrum
+  sds <- apply(reg$residuals/sqrt(rowSums(reg$fitted.values^2)),2,sd) * sp # how much of the energy is unexplained
 
-  m2 <- t(mtx[gate,,drop=F])-reg$coefficients['(Intercept)',] # matrix for guessing the intensity (intercept removed)
-  reg2 <- lm(m2 ~ sp+0) # "unmix" using the single channel
-
-  coefs <- reg2$coefficients[reg2$coefficients>0] # get unmixed values
-  ress <- reg2$residuals[,reg2$coefficients>0,drop=F] #residuals
-
-  ws <- coefs^2/(coefs^2+apply(ress^2,2,sum)) # weights: how much of the energy is explained?
-  e <- e2db(coefs) # intensities in dB
+  m2 <- t(mtx[gate,,drop=F]) # matrix for guessing the intensity
+  reg2 <- lm(m2 ~ sp) # "unmix" using the single channel
+  ws <- colSums(reg2$fitted.values^2) /
+    (colSums(reg2$fitted.values^2)+colSums(reg2$residuals^2)) # weights: how much of the energy is explained?
+  e <- e2db(reg2$coefficients['sp',]^2)/2 # intensities in dB, also dodging the zeroes
+  e[e< -100] <- -100 # dodge zeroes again
   wm <- sum(e*ws)/sum(ws) # weighted mean intensities
   wsd <- sqrt(sum((e-wm)^2*ws)/sum(ws)) # weighted sdev of intensities
   list(channels=colnames(mtx),
