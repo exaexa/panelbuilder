@@ -13,10 +13,12 @@ serveImportSpectra <- function(input, output, session, wsp) {
   observeEvent(input$fileImportFCS, {
     data$spectrum <- NULL
     data$fcsMtx <- NULL
-    #TODO: handle loading errors
-    m <- flowCore::read.FCS(input$fileImportFCS$datapath)@exprs
-    colnames(m) <- unname(colnames(m))
-    data$fcsMtx <- m
+    tryCatch({
+      m <- flowCore::read.FCS(input$fileImportFCS$datapath)@exprs
+      colnames(m) <- unname(colnames(m))
+      data$fcsMtx <- m
+    }, error=function(e) shiny::showNotification(type='error',
+      paste("Loading failed:",e)))
   })
 
   output$uiImportColumnPicker <- shiny::renderUI(
