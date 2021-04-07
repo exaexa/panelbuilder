@@ -25,13 +25,14 @@ serveUnmix <- function(input, output, session, wsp) {
     data$inputName <- character(0)
     data$outputMtx <- NULL
     data$outputColnames <- NULL
-    shiny::withProgress({
-      m <- flowCore::read.FCS(input$fileUnmixFCS$datapath)@exprs
-      setProgress(1)
-    }, message="Loading FCS...")
-    colnames(m) <- unname(colnames(m))
-    data$inputMtx <- m
-    data$inputName <- input$fileUnmixFCS$name
+    shiny::withProgress(tryCatch({
+        m <- flowCore::read.FCS(input$fileUnmixFCS$datapath)@exprs
+        colnames(m) <- unname(colnames(m))
+        data$inputMtx <- m
+        data$inputName <- input$fileUnmixFCS$name
+        setProgress(1)
+      }, error=function(e) shiny::showNotification(type='error', paste("Loading failed:", e))),
+      message="Loading FCS...")
   })
 
   output$uiUnmixControl <- shiny::renderUI(if(!is.null(data$inputMtx)) shiny::tagList(
