@@ -258,10 +258,7 @@ serveUnmix <- function(input, output, session, wsp) {
 
   output$uiUnmix <- shiny::renderUI(shiny::tagList(
     shiny::h1("Unmixing"),
-    if(length(wsp$panelAssignment)==0) "Prepare the panel first."
-    else shiny::tagList(
-      shiny::uiOutput('uiUnmixLoad'),
-      shiny::uiOutput('uiUnmixControl'),
-      shiny::uiOutput('uiUnmixPreview'))
-  ))
+    shiny::uiOutput('uiUnmixLoad'),
+    shiny::uiOutput('uiUnmixControl'),
+    shiny::uiOutput('uiUnmixPreview')))
 }

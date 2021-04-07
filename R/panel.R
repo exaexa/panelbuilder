@@ -22,19 +22,18 @@ getUnmixingInfo <- function(wsp) {
   chs <- character(0)
   for(s in ss) chs <- c(chs, s$spectrum$channels)
   chs <- nat.sort(unique(chs))
-  chs <- chs[
-    sapply(chs, function(ch)
-      all(sapply(ss, function(s)
-        ch %in% s$spectrum$channels)))]
+  chs <- chs[as.logical(sapply(chs, function(ch)
+    all(sapply(ss, function(s)
+      ch %in% s$spectrum$channels)))),drop=F]
   slen <- length(s$spectrum$mS)
-  list(
-    antigens=sapply(ss, function(s) s$antigen),
-    fluorochromes=sapply(ss, function(s) s$fluorochrome), #informative-only
+  list( #TODO: nat-sort by antigen
+    antigens=as.character(sapply(ss, function(s) s$antigen)),
+    fluorochromes=as.character(sapply(ss, function(s) s$fluorochrome)), #informative-only
     channels=chs,
-    mSs=sapply(ss, function(s) s$spectrum$mS[indexin(chs, s$spectrum$channels)]),
-    sdSs=sapply(ss, function(s) s$spectrum$sdS[indexin(chs, s$spectrum$channels)]),
-    mIs=sapply(ss, function(s) s$spectrum$mI),
-    sdIs=sapply(ss, function(s) s$spectrum$sdI))
+    mSs=matrix(sapply(ss, function(s) s$spectrum$mS[indexin(chs, s$spectrum$channels)]), length(chs), length(ss)),
+    sdSs=matrix(sapply(ss, function(s) s$spectrum$sdS[indexin(chs, s$spectrum$channels)]), length(chs), length(ss)),
+    mIs=as.numeric(sapply(ss, function(s) s$spectrum$mI)),
+    sdIs=as.numeric(sapply(ss, function(s) s$spectrum$sdI)))
 }
 
 matchingChans <- function(mtx, ui) {
@@ -43,17 +42,18 @@ matchingChans <- function(mtx, ui) {
 
 doUnmix <- function(mtx, ui, fcNames=T, inclOrigs=F, inclResiduals=F, inclRmse=T) {
   mc <- matchingChans(mtx, ui)
-  if(length(mc)==0) stop("No matching channels!")
-  # TODO: error on mismatch
+
+  if(length(mc)==0) return(mtx) # nothing to do
+
   umtx <- t(mtx[,indexin(mc, colnames(mtx))])
   umSs <- ui$mSs[indexin(mc, ui$channels),]
   # TODO: add variants that consider sdS and absolute intensities
   u <- lm(umtx~umSs+0, weights=sqrt(rowSums(umSs^2)))
 
   res <- mtx
-  
+
   if(!inclOrigs) res <- res[,-indexin(mc, colnames(res))]
-  
+
   umxd <- t(u$coefficients)
   colnames(umxd) <-
     if(fcNames) paste0(ui$antigens, " <", ui$fluorochromes, ">")
