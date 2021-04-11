@@ -1,11 +1,22 @@
 
+powerEstimate <- function(mtx, eliminateSpectra=NULL) {
+  # eliminateSpectra must have the same rows as mtx has columns
+  totals <- rowSums(mtx)
+  if(!is.null(eliminateSpectra)) {
+    totals <- totals - colSums(
+      # project to the subspace of normals using pseudoinverse
+      eliminateSpectra %*% pracma::pinv(eliminateSpectra) %*% t(mtx)
+    )
+  }
+  totals
+}
+
 #' Extract the spectrum
 #'
 #' the spectra are scaled to the mI.
-extractSpectrum <- function(mtx, gate, powerGate) {
+extractSpectrum <- function(mtx, gate=T, powerGate=T, eliminateSpectra=NULL) {
   m2 <- mtx[gate & powerGate,,drop=F]
-  #a <- sqrt(rowSums(m2^2)) #TODO: this may be totally wrong
-  a <- rowSums(m2)
+  a <- powerEstimate(m2, eliminateSpectra)
 
   reg <- lm(m2~a)
 
@@ -23,9 +34,11 @@ extractSpectrum <- function(mtx, gate, powerGate) {
   e[e< -100] <- -100 # dodge zeroes again
   wm <- sum(e*ws)/sum(ws) # weighted mean intensities
   wsd <- sqrt(sum((e-wm)^2*ws)/sum(ws)) # weighted sdev of intensities
-  list(channels=colnames(mtx),
-       mS=unname(sp),
-       sdS=unname(sds),
+  channels <- nat.sort(colnames(mtx))
+  perm <- indexin(channels, colnames(mtx))
+  list(channels=channels,
+       mS=unname(sp)[perm],
+       sdS=unname(sds)[perm],
        mI=wm,
        sdI=wsd)
 }

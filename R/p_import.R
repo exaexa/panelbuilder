@@ -29,6 +29,31 @@ serveImportSpectra <- function(input, output, session, wsp) {
       selected=defaultFluorescenceChannels(nat.sort(colnames(data$fcsMtx))),
       options=list(`actions-box`=TRUE)))
 
+  output$uiImportEliminatePicker <- shiny::renderUI({
+    availSpectra <- if(is.null(data$fcsMtx) || length(wsp$spectra)==0) c()
+      else {
+        flt <- sapply(wsp$spectra,
+          function(s) identical(nat.sort(s$spectrum$channels), nat.sort(input$importDataCols))) 
+        nms <- sapply(wsp$spectra[flt],
+          function(s) paste(
+            s$machine,"/",
+            s$mconfig,"/",
+            s$sample,"/",
+            s$antigen,"/",
+            s$fluorochrome,"/",
+            s$note))
+        avs <- seq_len(length(wsp$spectra))[flt]
+        names(avs) <- nms
+        avs
+      }
+    shiny::selectizeInput('importEliminateSpectra',
+      "Eliminate existing spectrum from signal",
+      multiple=T,
+      choices=availSpectra,
+      selected=NULL,
+      options=list(`actions-box`=TRUE))
+  })
+
   output$uiImportGate <- shiny::renderUI(shiny::tagList(
     shiny::selectizeInput('importGateColX',
       "Gate column X",
@@ -112,10 +137,14 @@ serveImportSpectra <- function(input, output, session, wsp) {
     if(is.null(input$importDataCols)) return()
     cols <- nat.sort(input$importDataCols)
     data$spectrum <- NULL
+    elim <- if(is.null(input$importEliminateSpectra)) NULL
+      else matrix(nrow=length(cols),
+        sapply(wsp$spectra[as.integer(input$importEliminateSpectra)],
+        function(s)s$spectrum$mS[indexin(cols, s$spectrum$channels)]))
     tryCatch(
       data$spectrum <- extractSpectrum(
         data$fcsMtx[,cols,drop=F],
-        getGate(), getPowerGate()),
+        getGate(), getPowerGate(), elim),
       error=function(e)
         shiny::showNotification(type='error',
           paste("Spectrum import failed:", e)))
@@ -172,6 +201,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
       shiny::column(4,style='min-width:20em',
         shiny::fileInput('fileImportFCS', "Upload an FCS file", accept='.fcs'),
         shiny::uiOutput('uiImportColumnPicker'),
+        shiny::uiOutput('uiImportEliminatePicker'),
         shiny::actionButton('doImportGetSpectrum', "Compute spectrum")),
       shiny::column(4,style='min-width:20em',
         shiny::uiOutput('uiImportGate'),
