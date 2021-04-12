@@ -14,7 +14,8 @@ Depends: R (>= 3.5),
 	 colorspace, ggplot2, cowplot, scattermore,
 	 reshape2, gtools,
 	 png, openssl,
-	 flowCore
+	 flowCore,
+	 pracma
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
