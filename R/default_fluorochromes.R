@@ -3,6 +3,8 @@
 # Let us know if you find one. :]
 
 defaultFluorochromes <- c(
+'Unstained',
+
 '7AAD', 'Alexa Fluor 350', 'Alexa Fluor 405', 'Alexa Fluor 488', 'Alexa Fluor 532', 'Alexa Fluor 546', 'Alexa Fluor 555', 'Alexa Fluor 561', 'Alexa Fluor 568', 'Alexa Fluor 594',
 'Alexa Fluor 647', 'Alexa Fluor 660', 'Alexa Fluor 680', 'Alexa Fluor 700', 'Alexa Fluor 750', 'Alexa Fluor 790', 'AmCyan', 'Amethyst Orange', 'APC', 'APC-Alexa Fluor 700',
 'APC-Alexa Fluor 750', 'APC-C750', 'APC-Cy5.5', 'APC-Cy7', 'APC-eFluor 780', 'APC-Fire 750', 'APC/Fire 810', 'APC-H7', 'APC-R700', 'APC-Vio 770',

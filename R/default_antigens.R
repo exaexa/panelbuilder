@@ -1,10 +1,15 @@
-# This is generated from https://www.uniprot.org/docs/cdlist
+
+defaultAntigens <- c(
+'Autofluorescence',
+
+# Some extra antigens extra to the uniprot ones:
+'GATA2', 'GATA3', 'Tim3', 'FoxP3', 'Perforin', 'STAT5', 'STAT6', 'Bcl6', 'Pax5', 'Oct2', 'BLIMP1', 'Helios', 'HLA-DR',
+
+# The following data is generated from https://www.uniprot.org/docs/cdlist
 #
 # Base data can be regenerated with:
 #
 # curl https://www.uniprot.org/docs/cdlist.txt |grep ^CD |tail -n+2 |cut -b1-8,38-55 |tr ';' ' ' |tr -s ' ' |tr ' ' '\n' |sort |uniq
-
-defaultAntigens <- c(
 '1C7', '2B4', '86DA', 'A2MR', 'ABCB1', 'ABCG2', 'ABCP', 'ACE', 'ACKR1', 'ACVRLK3',
 'ADAM10', 'ADAM17', 'ADAM8', 'ADCP2', 'ADGRE2', 'AE1', 'AILIM', 'AIRM1', 'AITR', 'ALCAM',
 'ALK', 'ANPEP', 'APO2', 'APO2L', 'APRIL', 'APT1', 'ART1', 'ART4', 'ATP1B3', 'B1G1',
