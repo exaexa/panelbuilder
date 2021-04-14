@@ -69,8 +69,8 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
               s$spectrum$sdS,
               res=48, x=320, y=48)),
           shiny::tags$td(
-            shiny::actionButton(toPanelName, "→panel"),
-            shiny::actionButton(rmName, "×")))
+            shiny::actionButton(toPanelName, "to panel"),
+            shiny::actionButton(rmName, "x")))
       }
     ))))
   ))
