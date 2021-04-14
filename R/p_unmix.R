@@ -196,26 +196,29 @@ serveUnmix <- function(input, output, session, wsp) {
     if(nrow(data$postCompPts)>2) data$postCompPts <- data$postCompPts[1:2,,drop=F]
   })
 
-  doAlign <- function(src,dst) tryCatch({
-    tr <- solve(src) %*% dst
+  doAlign <- function(tr) {
     data$postCompHistory <- c(list(data$postCompensation), data$postCompHistory)
     ds <- c(input$unmixPlotX, input$unmixPlotY)
     data$postCompensation[ds,ds] <- data$postCompensation[ds,ds] %*% tr
     data$postCompPts <- NULL
-  }, error=function(e) shiny::showNotification(type='error', paste(e, "(system is probably singular)")))
+  }
 
   observeEvent(input$doUnmixLevelH, if(!is.null(data$postCompPts) && nrow(data$postCompPts)==2) {
-    src <- data$postCompPts
-    dst <- src
-    dst[2,2] <- dst[1,2]
-    doAlign(src, dst)
+    dstX <- data$postCompPts[1,1]
+    dstY <- data$postCompPts[1,2]
+    srcX <- data$postCompPts[2,1]
+    srcY <- data$postCompPts[2,2]
+    if(abs(dstX-srcX)<1) shiny::showNotification(type='error', "Source and destination horizontal coordinates too close")
+    else doAlign(matrix(c(1,0,(srcY-dstY)/(dstX-srcX),1), 2))
   })
 
   observeEvent(input$doUnmixLevelV, if(!is.null(data$postCompPts) && nrow(data$postCompPts)==2) {
-    src <- data$postCompPts
-    dst <- src
-    dst[2,1] <- dst[1,1]
-    doAlign(src, dst)
+    dstX <- data$postCompPts[1,1]
+    dstY <- data$postCompPts[1,2]
+    srcX <- data$postCompPts[2,1]
+    srcY <- data$postCompPts[2,2]
+    if(abs(dstY-srcY)<1) shiny::showNotification(type='error', "Source and destination vertical coordinates too close")
+    else doAlign(matrix(c(1,(srcX-dstX)/(dstY-srcY),0,1), 2))
   })
 
   doGate <- function(b, inv) if(!is.null(b)) {
