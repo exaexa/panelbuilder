@@ -151,8 +151,8 @@ serveUnmix <- function(input, output, session, wsp) {
   output$uiUnmixTools <- shiny::renderUI(if(input$unmixTool=='level') shiny::tagList(
     shiny::div("the tool aligns the selected × cross to the level of + cross"),
     ilDiv(
-      shiny::actionButton('doUnmixLevelH', "═"),
-      shiny::actionButton('doUnmixLevelV', "‖"),
+      shiny::actionButton('doUnmixLevelH', "Make horizontal"),
+      shiny::actionButton('doUnmixLevelV', "Make vertical"),
       shiny::actionButton('doUnmixLevelUndo', "Undo"),
       shiny::actionButton('doUnmixLevelReset', "Reset")))
     else ilDiv(
