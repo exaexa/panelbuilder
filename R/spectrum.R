@@ -94,9 +94,6 @@ plotSpectrumPNG <- function(ms, sds, res=32, x=512, y=32) {
 }
 
 defaultMachines <- c('Aurora','Symphony','Fortessa II','BFC 9k')
-defaultSampleTypes <- c('Spleen (mouse)','Thymus (mouse)','PBMC (mouse)','Bone marrow (mouse)','Beads')
-defaultAntigens <- c(paste0('CD',1:300), 'L/D','Unstained')
-defaultFluorochromes <- c('Cy5', 'Cy5.5', 'Cy7', 'APC', 'FITC', 'PE', 'GFP', 'Unstained')
 
 spectrumMetadataForm <- function(prefix, spectra, selected=NULL, defaultAll=F, create=T, multiple=F) {
   i <- function(x)paste0(prefix, x)
@@ -113,7 +110,7 @@ spectrumMetadataForm <- function(prefix, spectra, selected=NULL, defaultAll=F, c
       selected=if(defaultAll) mkch("mconfig"),
       multiple=multiple, options=list(`create`=create)),
     shiny::selectizeInput(i('SampleType'), "Sample origin/type",
-      choices=mkch("sample", if(create) defaultSampleTypes),
+      choices=mkch("sample", if(create) "—"),
       selected=if(defaultAll) mkch("sample"),
       multiple=multiple, options=list(`create`=create)),
     shiny::selectizeInput(i('Antigen'), "Antigen/Antibody",
