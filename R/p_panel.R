@@ -1,4 +1,3 @@
-
 menuPanelSetup <- function(input,output,session,wsp) {
   output$menuPanelSetup <- shiny::renderUI(
     paste0("Panel setup (",length(panelAntigens(wsp)),"AGs, ",length(panelFluorochromes(wsp)),"FCs)")
@@ -47,7 +46,7 @@ servePanelSetup <- function(input, output, session, wsp) {
         "±", dbf(wsp$panelSpectra[[idx]]$spectrum$sdI, ''),
         shiny::tags$br(),
         ilDiv(
-          shiny::actionButton(setName, "↑"),
+          shiny::actionButton(setName, "^"),
           shiny::actionButton(rmName, "×"))))
     }
 
