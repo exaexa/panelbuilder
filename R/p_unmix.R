@@ -35,8 +35,23 @@ serveUnmix <- function(input, output, session, wsp) {
       message="Loading FCS...")
   })
 
-  output$uiUnmixControl <- shiny::renderUI(if(!is.null(data$inputMtx)) shiny::tagList(
+  output$uiUnmixControl <- shiny::renderUI(shiny::tagList(
     shiny::h3("Unmixing control"),
+    shiny::uiOutput('uiUnmixLoadedSample'),
+    shiny::selectizeInput('unmixMethod', "Unmixing method",
+      choices = c(`OLS`='ols',
+        `OLS weighted by spectra`='ols-spw',
+        `OLS weighted by channel power`='ols-chw',
+        `Event-weighted OLS (MAPE-like)`='eols-rw'),
+      selected="ols", multiple=F),
+    shiny::checkboxInput('unmixIncludeFluorochromes', "Include fluorochrome names", value=T),
+    shiny::checkboxInput('unmixIncludeOriginals', "Retain original values in the raw channels that were used for unmixing", value=F),
+    shiny::checkboxInput('unmixIncludeResiduals', "Include per-channel residuals", value=F),
+    shiny::checkboxInput('unmixIncludeRMSE', "Include total unmixing RMSE information", value=T),
+    shiny::actionButton('doUnmix', "Run unmixing")
+  ))
+
+  output$uiUnmixLoadedSample <- shiny::renderUI(if(is.null(data$inputMtx)) "No data loaded." else shiny::tagList(
     shiny::div(shiny::strong("Loaded: "), data$inputName, paste0("(", nrow(data$inputMtx), " events)")),
     {
       mcs <- matchingChans(data$inputMtx, getUnmixingInfo(wsp))
@@ -48,12 +63,7 @@ serveUnmix <- function(input, output, session, wsp) {
         do.call(shiny::div, c(
           list(shiny::strong(paste0("Other channels (",length(umcs),"):"))),
           lapply(umcs, function(umc) shiny::span(class="badge", umc)))))
-    },
-    shiny::checkboxInput('unmixIncludeFluorochromes', "Include fluorochrome names", value=T),
-    shiny::checkboxInput('unmixIncludeOriginals', "Retain original values in the raw channels that were used for unmixing", value=F),
-    shiny::checkboxInput('unmixIncludeResiduals', "Include per-channel residuals", value=F),
-    shiny::checkboxInput('unmixIncludeRMSE', "Include total unmixing RMSE information", value=T),
-    shiny::actionButton('doUnmix', "Run unmixing")
+    }
   ))
 
   observeEvent(input$doUnmix,
@@ -61,6 +71,7 @@ serveUnmix <- function(input, output, session, wsp) {
       shiny::withProgress({
         tryCatch(
           data$outputMtx <- doUnmix(data$inputMtx, getUnmixingInfo(wsp),
+            input$unmixMethod,
             input$unmixIncludeFluorochromes,
             input$unmixIncludeOriginals,
             input$unmixIncludeResiduals,

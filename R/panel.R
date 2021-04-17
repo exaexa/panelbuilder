@@ -17,7 +17,7 @@ cleanAssignments <- function(wsp) {
 
 getUnmixingInfo <- function(wsp) {
   as <- cleanAssignments(wsp)
-  ss <- lapply(names(as), function(ag)
+  ss <- lapply(nat.sort(names(as)), function(ag)
     spectrumFind(wsp$panelSpectra, list(antigen=ag, fluorochrome=as[[ag]])))
   chs <- character(0)
   for(s in ss) chs <- c(chs, s$spectrum$channels)
@@ -40,34 +40,68 @@ matchingChans <- function(mtx, ui) {
   nat.sort(unique(colnames(mtx)[colnames(mtx) %in% ui$channels]))
 }
 
-doUnmix <- function(mtx, ui, fcNames=T, inclOrigs=F, inclResiduals=F, inclRmse=T) {
+doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals=F, inclRmse=T) {
   mc <- matchingChans(mtx, ui)
 
   if(length(mc)==0) return(mtx) # nothing to do
 
+  coefficients <- NULL
+  residuals <- NULL
+
   umtx <- t(mtx[,indexin(mc, colnames(mtx))])
-  umSs <- ui$mSs[indexin(mc, ui$channels),]
+
   # TODO: add variants that consider sdS and absolute intensities
-  u <- lm(umtx~umSs+0, weights=sqrt(rowSums(umSs^2)))
+  if(method=='ols') {
+    umSs <- ui$mSs[indexin(mc, ui$channels),]
+    u <- lm(umtx~umSs+0)
+    coefficients <- t(u$coefficients)
+    residuals <- t(u$residuals)
+  } else if(method=='ols-spw') {
+    umSs <- ui$mSs[indexin(mc, ui$channels),]
+    cws <- sqrt(rowMeans(umSs^2))
+    cws[cws<1e-4] <- 1e-4
+    cws <- 1/cws
+    umtx <- umtx*cws
+    umSs <- umSs*cws
+    u <- lm(umtx~umSs+0)
+    coefficients <- t(u$coefficients)
+    residuals <- t(u$residuals/cws)
+  } else if(method=='ols-chw') {
+    umSs <- ui$mSs[indexin(mc, ui$channels),]
+    cws <- sqrt(rowMeans(umtx^2))
+    cws[cws<1e-4] <- 1e-4
+    cws <- 1/cws
+    umtx <- umtx*cws
+    umSs <- umSs*cws
+    u <- lm(umtx~umSs+0)
+    coefficients <- t(u$coefficients)
+    residuals <- t(u$residuals/cws)
+  } else if(method=='eols-rw') {
+    umtx[umtx<1] <- 1
+    umSs <- ui$mSs[indexin(mc, ui$channels),]
+    ones <- rep(1, nrow(umtx))
+    coefficients <- t(apply(umtx, 2,
+      function(r) lm.fit(umSs/r, ones)$coefficients))
+    residuals <- t(umtx) - (coefficients %*% t(umSs))
+  } else {
+    stop("unsupported unmixing method")
+  }
 
   res <- mtx
 
   if(!inclOrigs) res <- res[,-indexin(mc, colnames(res))]
 
-  umxd <- t(u$coefficients)
-  colnames(umxd) <-
+  colnames(coefficients) <-
     if(fcNames) paste0(ui$antigens, " <", ui$fluorochromes, ">")
     else ui$antigens
-  res <- cbind(res, umxd)
+  res <- cbind(res, coefficients)
   
   if(inclResiduals) {
-    rss <- t(u$residuals)
-    colnames(rss) <- paste("pbResidual ",mc)
-    res <- cbind(res,rss)
+    colnames(residuals) <- paste("pbResidual ",mc)
+    res <- cbind(res,residuals)
   }
 
-  if(inclRmse) res <- cbind(res, pbRMSE=sqrt(colMeans(u$residuals^2)))
+  if(inclRmse) res <- cbind(res, pbRMSE=sqrt(rowMeans(residuals^2)))
 
   res
 }
-  
