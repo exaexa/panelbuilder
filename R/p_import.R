@@ -144,6 +144,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
     tryCatch(
       data$spectrum <- extractSpectrum(
         data$fcsMtx[,cols,drop=F],
+        input$importMethod,
         getGate(), getPowerGate(), elim),
       error=function(e)
         shiny::showNotification(type='error',
@@ -202,6 +203,10 @@ serveImportSpectra <- function(input, output, session, wsp) {
         shiny::fileInput('fileImportFCS', "Upload an FCS file", accept='.fcs'),
         shiny::uiOutput('uiImportColumnPicker'),
         shiny::uiOutput('uiImportEliminatePicker'),
+        shiny::selectizeInput('importMethod', "Spectrum computation method",
+          choices=c(`OLS`='ols', `Approximated Theil-Sen estimator`='theil-sen'),
+          selected='ols',
+          multiple=F),
         shiny::actionButton('doImportGetSpectrum', "Compute spectrum")),
       shiny::column(4,style='min-width:20em',
         shiny::uiOutput('uiImportGate'),

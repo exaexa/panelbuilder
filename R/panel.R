@@ -40,6 +40,7 @@ matchingChans <- function(mtx, ui) {
   nat.sort(unique(colnames(mtx)[colnames(mtx) %in% ui$channels]))
 }
 
+#' @useDynLib panelbuilder, .registration=True
 doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals=F, inclRmse=T) {
   mc <- matchingChans(mtx, ui)
 
@@ -83,6 +84,39 @@ doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals
     coefficients <- t(apply(umtx, 2,
       function(r) lm.fit(umSs/r, ones)$coefficients))
     residuals <- t(umtx) - (coefficients %*% t(umSs))
+  } else if(method=='gd-pw') {
+    umSs <- ui$mSs[indexin(mc, ui$channels),]
+
+    n <- ncol(umtx)
+    d <- nrow(umSs)
+    k <- ncol(umSs)
+
+    iters <- 100
+    alpha <- 0.05
+    tol <- 0.05
+
+    x_kn <- matrix(0, k, n)
+    r_dn <- matrix(0, d, n)
+    g_k <- rep(0, k)
+
+    res <- .C("pw_gd",
+      n=as.integer(n),
+      d=as.integer(d),
+      k=as.integer(k),
+      iters=as.integer(iters),
+      alpha=as.single(alpha),
+      tol=as.single(tol),
+      s=as.single(umSs),
+      spw=as.single(matrix(1, d, k)),
+      snw=as.single(matrix(3, d, k)),
+      nw=as.single(rep(10,k)),
+      y=as.single(umtx),
+      x=as.single(x_kn),
+      r=as.single(r_dn),
+      g=as.single(g_k))
+
+    coefficients <- matrix(res$x,n,k,byrow=T)
+    residuals <- matrix(res$r,n,d,byrow=T)
   } else {
     stop("unsupported unmixing method")
   }

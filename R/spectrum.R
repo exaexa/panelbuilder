@@ -14,20 +14,38 @@ powerEstimate <- function(mtx, eliminateSpectra=NULL) {
 #' Extract the spectrum
 #'
 #' the spectra are scaled to the mI.
-extractSpectrum <- function(mtx, gate=T, powerGate=T, eliminateSpectra=NULL) {
+extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, eliminateSpectra=NULL) {
   m2 <- mtx[gate & powerGate,,drop=F]
   a <- powerEstimate(m2, eliminateSpectra)
 
-  reg <- lm(m2~a)
+  sp <- NULL
+  sds <- NULL
 
-  sp <- reg$coefficients['a',]
-  sp[sp<0] <- 0 # clamp negatives (TODO: is this bias?)
-  if(max(sp)==0) stop("Spectrum extraction problem: all coefficients non-positive.")
-  sp <- sp/sqrt(sum(sp^2)) # normalized spectrum
-  sds <- apply(reg$residuals/sqrt(rowSums(reg$fitted.values^2)),2,sd) * sp # how much of the energy is unexplained
+  if(method=='ols') {
+    reg <- lm(m2~a)
+
+    sp <- reg$coefficients['a',]
+    sp[sp<0] <- 0 # clamp negatives (TODO: is this bias?)
+    if(max(sp)==0) stop("Spectrum extraction problem: all coefficients non-positive.")
+    sp <- sp/sqrt(sum(sp^2)) # normalized spectrum
+    sds <- apply(reg$residuals/sqrt(rowSums(reg$fitted.values^2)),2,sd) * sp # how much of the energy is unexplained
+  } else if(method=='theil-sen') {
+    ssize <- max(1e6, 10*length(a))
+    sa <- sample(length(a), ssize, replace=T)
+    sb <- sample(length(a), ssize, replace=T)
+    v <- (mtx[sa,]-mtx[sb,])
+    p <- (a[sa]-a[sb])
+    flt <- abs(p)>1e-4
+    v <- v[flt,]
+    p <- p[flt]
+    sp <- apply(v/p, 2, median)
+    sp[sp<0] <- 0
+    sp <- sp/sqrt(sum(sp^2))
+    sds <- 0.1*sp #TODO: finish this
+  } else stop("Unknown method for spectrum extraction")
 
   m2 <- t(mtx[gate,,drop=F]) # matrix for guessing the intensity
-  reg2 <- lm(m2 ~ sp) # "unmix" using the single channel
+  reg2 <- lm(m2 ~ sp) # "unmix" using this single channel (TODO: better regression?)
   ws <- colSums(reg2$fitted.values^2) /
     (colSums(reg2$fitted.values^2)+colSums(reg2$residuals^2)) # weights: how much of the energy is explained?
   e <- e2db(reg2$coefficients['sp',]^2)/2 # intensities in dB, also dodging the zeroes
