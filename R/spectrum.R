@@ -1,14 +1,39 @@
 
 powerEstimate <- function(mtx, eliminateSpectra=NULL) {
   # eliminateSpectra must have the same rows as mtx has columns
-  totals <- rowSums(mtx)
-  if(!is.null(eliminateSpectra)) {
-    totals <- totals - colSums(
-      # project to the subspace of normals using pseudoinverse
-      eliminateSpectra %*% pracma::pinv(eliminateSpectra) %*% t(mtx)
-    )
+  if(is.null(eliminateSpectra)) rowSums(mtx) else {
+    n <- nrow(mtx)
+    d <- ncol(mtx)
+    k <- ncol(eliminateSpectra)
+
+    iters <- 100
+    alpha <- 0.1
+    tol <- 1
+
+    x_kn <- matrix(0, k, n)
+    r_dn <- matrix(0, d, n)
+    g_k <- rep(0, k)
+
+    res <- .C("pw_gd",
+      n=as.integer(n),
+      d=as.integer(d),
+      k=as.integer(k),
+      iters=as.integer(iters),
+      alpha=as.single(alpha),
+      tol=as.single(tol),
+      s=as.single(t(eliminateSpectra)),
+      spw=as.single(matrix(1, d, k)),
+      snw=as.single(matrix(20, d, k)),
+      nw=as.single(rep(10,k)),
+      y=as.single(t(mtx)),
+      x=as.single(x_kn),
+      r=as.single(r_dn),
+      g=as.single(g_k))
+
+    #TODO: why not completely replace mtx by residuals?
+    residuals <- matrix(res$r,n,d,byrow=T)
+    rowSums(residuals)
   }
-  totals
 }
 
 #' Extract the spectrum
@@ -33,9 +58,9 @@ extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, eliminateSpe
     ssize <- max(1e6, 10*length(a))
     sa <- sample(length(a), ssize, replace=T)
     sb <- sample(length(a), ssize, replace=T)
-    v <- (mtx[sa,]-mtx[sb,])
+    v <- (m2[sa,]-m2[sb,])
     p <- (a[sa]-a[sb])
-    flt <- abs(p)>1e-4
+    flt <- abs(p)>1
     v <- v[flt,]
     p <- p[flt]
     sp <- apply(v/p, 2, median)

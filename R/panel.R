@@ -93,7 +93,7 @@ doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals
 
     iters <- 100
     alpha <- 0.05
-    tol <- 0.05
+    tol <- 1
 
     x_kn <- matrix(0, k, n)
     r_dn <- matrix(0, d, n)
