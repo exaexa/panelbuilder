@@ -16,8 +16,7 @@ pw_gd(const int* np,
       const float* nw_k,
       const float* y_dn,
       float* x_kn,
-      float* r_dn,
-      float* g_k)
+      float* r_dn)
 {
   const size_t n = *np, d = *dp, k = *kp, iters = *itersp;
   const float alpha = *alphap, tol = *tolp;
@@ -59,7 +58,7 @@ pw_gd(const int* np,
   }
 }
 
-static const R_CMethodDef cMethods[] = { { "pw_gd", (DL_FUNC)&pw_gd, 14 },
+static const R_CMethodDef cMethods[] = { { "pw_gd", (DL_FUNC)&pw_gd, 13 },
                                          { NULL, NULL, 0 } };
 
 void

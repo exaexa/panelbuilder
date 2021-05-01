@@ -12,7 +12,6 @@ powerEstimate <- function(mtx, eliminateSpectra=NULL) {
 
     x_kn <- matrix(0, k, n)
     r_dn <- matrix(0, d, n)
-    g_k <- rep(0, k)
 
     res <- .C("pw_gd",
       n=as.integer(n),
@@ -27,8 +26,7 @@ powerEstimate <- function(mtx, eliminateSpectra=NULL) {
       nw=as.single(rep(10,k)),
       y=as.single(t(mtx)),
       x=as.single(x_kn),
-      r=as.single(r_dn),
-      g=as.single(g_k))
+      r=as.single(r_dn))
 
     #TODO: why not completely replace mtx by residuals?
     residuals <- matrix(res$r,n,d,byrow=T)
