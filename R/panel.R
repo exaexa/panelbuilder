@@ -41,6 +41,7 @@ matchingChans <- function(mtx, ui) {
 }
 
 #' @useDynLib panelbuilder, .registration=True
+#' @export
 doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals=F, inclRmse=T) {
   mc <- matchingChans(mtx, ui)
 
@@ -60,7 +61,7 @@ doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals
   } else if(method=='ols-spw') {
     umSs <- ui$mSs[indexin(mc, ui$channels),]
     cws <- sqrt(rowMeans(umSs^2))
-    cws[cws<1e-4] <- 1e-4
+    cws[cws<1e-2] <- 1e-2
     cws <- 1/cws
     umtx <- umtx*cws
     umSs <- umSs*cws
@@ -70,7 +71,7 @@ doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals
   } else if(method=='ols-chw') {
     umSs <- ui$mSs[indexin(mc, ui$channels),]
     cws <- sqrt(rowMeans(umtx^2))
-    cws[cws<1e-4] <- 1e-4
+    cws[cws<1e-2] <- 1e-2
     cws <- 1/cws
     umtx <- umtx*cws
     umSs <- umSs*cws
@@ -92,7 +93,7 @@ doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals
     k <- ncol(umSs)
 
     iters <- 100
-    alpha <- 0.1
+    alpha <- 0.05
     tol <- 1
 
     x_kn <- matrix(0, k, n)
@@ -106,9 +107,9 @@ doUnmix <- function(mtx, ui, method='ols', fcNames=T, inclOrigs=F, inclResiduals
       alpha=as.single(alpha),
       tol=as.single(tol),
       s=as.single(umSs),
-      spw=as.single(matrix(1, d, k)),
-      snw=as.single(matrix(3, d, k)),
-      nw=as.single(rep(10,k)),
+      spw=as.single(0.99*umSs+0.01),
+      snw=as.single(4.99*umSs+0.01),
+      nw=as.single(rep(5,k)),
       y=as.single(umtx),
       x=as.single(x_kn),
       r=as.single(r_dn))

@@ -72,11 +72,11 @@ serveUnmix <- function(input, output, session, wsp) {
       shiny::withProgress({
         tryCatch(
           data$outputMtx <- doUnmix(data$inputMtx, getUnmixingInfo(wsp),
-            input$unmixMethod,
-            input$unmixIncludeFluorochromes,
-            input$unmixIncludeOriginals,
-            input$unmixIncludeResiduals,
-            input$unmixIncludeRMSE),
+            method=input$unmixMethod,
+            fcNames=input$unmixIncludeFluorochromes,
+            inclOrigs=input$unmixIncludeOriginals,
+            inclResiduals=input$unmixIncludeResiduals,
+            inclRmse=input$unmixIncludeRMSE),
           error=function(e) shiny::showNotification(type='error',
             paste("Unmixing failed:", e)))
           data$outputColnames <- colnames(data$outputMtx)
