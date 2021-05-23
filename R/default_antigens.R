@@ -1,6 +1,6 @@
 
 defaultAntigens <- c(
-'Autofluorescence',
+'Autofluorescence', 'Beads',
 
 # Some extra antigens extra to the uniprot ones:
 'GATA2', 'GATA3', 'Tim3', 'FoxP3', 'Perforin', 'STAT5', 'STAT6', 'Bcl6', 'Pax5', 'Oct2', 'BLIMP1', 'Helios', 'HLA-DR',
