@@ -79,12 +79,6 @@ serveSpectraBrowser <- function(input, output, session, wsp) {
     data$filter <- unlist(sapply(wsp$spectra, function(x)T))
   })
 
-  observeEvent(wsp$panelSpectra, {
-    a <- cleanAssignments(wsp)
-    if(length(a) < length(wsp$panelAssignments))
-      wsp$panelAssignments <- a
-  })
-
   observeEvent(input$doSpectraFilter, {
     tgt <- spectrumMetadataFormGather('spectraSearchForm', input)
     data$filter <- unlist(sapply(wsp$spectra, function(x)

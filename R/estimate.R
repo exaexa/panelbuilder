@@ -1,7 +1,7 @@
 
 spectraEstComponents <- function(wsp) {
-  ags <- panelAntigens(wsp)
-  fcs <- panelFluorochromes(wsp)
+  ags <- panelAntigens(wsp$panelSpectra)
+  fcs <- panelFluorochromes(wsp$panelSpectra)
   vert_ags <- seq_len(length(ags))
   vert_fcs <- seq_len(length(fcs))+length(ags)
   edge_ags <- indexin(unlist(sapply(wsp$panelSpectra, function(x)x$antigen)), ags)
@@ -21,25 +21,56 @@ spectraEstComponents <- function(wsp) {
 }
 
 spectrumToLinearEst <- function(sp, channels) {
-  #TODO
+  cixs <- indexin(channels, sp$channels)
+  c(log(sp$mI),
+    log(sp$sdI),
+    sp$mS, # mS is spherical, needs special treatment
+    sp$sdS)
 }
 
-spectrumFromLinarEst <- function(lin, channels) {
-  #TODO
+spectrumFromLinearEst <- function(lin, channels) {
+  n <- length(channels)
+  if(length(lin)!=2+2*n) stop("internal error in spectrum decoding")
+  mI <- exp(lin[1])
+  sdI <- exp(lin[2])
+  # project mS back to unit sphere
+  mS <- lin[3:(2+n)]
+  mS[mS<0] <- 0
+  mSp <- sqrt(sum(mS^2))
+  if(mSp>1e-5) mS <- mS/sqrt(sum(mS^2))
+
+  sdS <- lin[(3+n):length(lin)]
+  sdS[sdS<0] <- 0
+
+  list(
+    channels=channels,
+    mI=mI,
+    sdI=sdI,
+    mS=mS,
+    sdS=sdS)
 }
 
-makeSpectraEstimate <- function(wsp) {
+makeSpectraEstimate <- function(wsp, addEstimates=T) {
   # find what can be estimated
   components <- spectraEstComponents(wsp)
-  estimate <- -outer(components$fcs, comonents$ags, "==")
-  for(i in length(wsp$panelSpectra)) {
+  estimate <- -outer(components$fcs, components$ags, "==")
+  if(length(wsp$panelSpectra)>0) for(i in seq(length(wsp$panelSpectra))) {
     sp <- wsp$panelSpectra[[i]]
     estimate[sp$fluorochrome, sp$antigen] <- i
   }
 
   res <- list()
-  for(sp in wsp$panelSpectra) # include the originals
-    res <- c(res, list(estimated=F, antigen=sp$antigen, fluorochrome=sp$fluorochrome, spectrum=sp$spectrum))
+  for(sp in wsp$panelSpectra) {
+    # include the originals
+    os <- list(
+      estimated=F,
+      antigen=sp$antigen,
+      fluorochrome=sp$fluorochrome,
+      spectrum=sp$spectrum)
+    res <- c(res, list(os))
+  }
+
+  if(!addEstimates) return(res)
 
   # cycle through all components
   for(component in sort(unique(unname(c(components$fcs,components$ags))))) {
@@ -59,7 +90,7 @@ makeSpectraEstimate <- function(wsp) {
       varnames=c('fc','ag'))
 
     estIdxs <- subestimate$ref[subestimate$ref>0L]
-    if(length(estIdxs)<2L || sum(subestimate<0)<1L) {
+    if(length(estIdxs)<2L || sum(subestimate$ref<0)<1L) {
       # continue if there's nothing to estimate
       next
     }
@@ -73,23 +104,23 @@ makeSpectraEstimate <- function(wsp) {
     }
 
     known_model <- cbind(
-      fcbits[known$fc,],
-      agbits[known$ag,])
+      fcbits[known$fc,,drop=F],
+      agbits[known$ag,,drop=F])
     known_response <- matrix(nrow=nrow(known), t(sapply(
       wsp$panelSpectra[known$ref],
-      function(s) spectrumToLinearEst(s, chs))))
+      function(s) spectrumToLinearEst(s$spectrum, chs))))
 
     # add absolute-scale parameters -- if nothing helps, we can always state the stuff should sum up to 0
     eps <- 1e-6
     known_model <- rbind(known_model,
       c(rep(eps,ncol(fcbits)), rep(0, ncol(agbits))),
       c(rep(0,ncol(fcbits)), rep(eps, ncol(agbits))),
-      c(rep(eps,ncol(fcbits)), rep(eps, ncol(agbits))),
-      )
+      c(rep(eps,ncol(fcbits)), rep(eps, ncol(agbits))))
     known_response <- rbind(known_response, 0, 0, 0)
 
-    m <- lm(known_response ~ known_model+0)
-    coefs <- matrix(x$coefficients)
+    coefs <- matrix(
+      lm(known_response ~ known_model+0)$coefficients,
+      nrow=ncol(known_model))
 
     # we didn't manage to guess enough stuff, weird.
     if(any(is.na(coefs))) {
@@ -100,15 +131,20 @@ makeSpectraEstimate <- function(wsp) {
     # check out the spectra to be estimated
     unknown <- subestimate[subestimate$ref<0,]
     unknown_model <- cbind(
-      fcbits[unknown$fc,],
-      agbits[unknown$ag,])
+      fcbits[unknown$fc,,drop=F],
+      agbits[unknown$ag,,drop=F])
 
     # calculate the estimates and push into the result
     est_response <- unknown_model %*% coefs
 
     for(i in seq(nrow(est_response))) {
       sp <- spectrumFromLinearEst(est_response[i,], chs)
-      res <- c(res, list(estimated=T, antigen=subestimate$ag[i], fluorochrome=subestimate$fc[i], spectrum=sp))
+      es <- list(
+        estimated=T,
+        antigen=as.character(unknown$ag[i]),
+        fluorochrome=as.character(unknown$fc[i]),
+        spectrum=sp)
+      res <- c(res, list(es))
     }
   }
 

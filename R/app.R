@@ -39,7 +39,7 @@ window.onbeforeunload = function() {
       page='import',
       spectra=list(),
       panelSpectra=list(),
-      panelSpectraExt=list(), # with estimates
+      panelSpectraEst=list(),
       panelAssignment=list()
     )
 
