@@ -103,9 +103,12 @@ defaultSSCChannel <- function(nms)
 spectrumPalette <- function(n=128, ...)
   #colorspace::sequential_hcl(n=n, 'viridis', rev=T)
   #colorRampPalette(c('#44dd22','white','black'))(n,...)
-  colorRampPalette(c('#44dd22','#ff8800','white'))(n,...)
+  #colorRampPalette(c('#88aacc',EmbedSOM::ExpressionPalette(n-2),'white'))(n,...)
   #colorRampPalette(c('#338822','#ffcc88','black'))(n,...)
   #colorspace::sequential_hcl(n = n, h = 114, c = c(0, 0, 114), l = c(0,100, 50), power = 1.1, ...)
+  #colorspace::diverging_hcl(n = 28, h = c(220, 33), c = c(43, 55), l = c(100, 35), power = 1)
+  colorRampPalette(c("#7CC3DB", "#77ACBF", "#525252", "#C59B8A", "#FFF3DD"))(n,...)
+  #colorspace::diverging_hcl(n, 'Lisbon')
 
 plotSpectrum <- function(ms, sds, nms=names(ms), res=128) {
   d <- sapply(seq_len(length(nms)), function(i)
