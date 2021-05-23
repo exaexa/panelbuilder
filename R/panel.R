@@ -15,17 +15,21 @@ cleanAssignments <- function(wsp) {
   out
 }
 
+getCommonChannels <- function(panel) {
+  chs <- character(o)
+  for(s in panel) chs <- c(chs, s$spectrum$channels)
+  chs <- nat.sort(unique(chs))
+  m <- matrix(F, nrow=length(chs), ncol=length(panel))
+  rownames(m) <- chs
+  for(i in seq(length(panel))) chs[panel[[i]]$spectrum$channels, i] <- T
+  chs[apply(m, 1, all)]
+}
+
 getUnmixingInfo <- function(wsp) {
   as <- cleanAssignments(wsp)
   ss <- lapply(nat.sort(names(as)), function(ag)
     spectrumFind(wsp$panelSpectra, list(antigen=ag, fluorochrome=as[[ag]])))
-  chs <- character(0)
-  for(s in ss) chs <- c(chs, s$spectrum$channels)
-  chs <- nat.sort(unique(chs))
-  chs <- chs[as.logical(sapply(chs, function(ch)
-    all(sapply(ss, function(s)
-      ch %in% s$spectrum$channels)))),drop=F]
-  slen <- length(s$spectrum$mS)
+  chs <- getCommonChannels(wsp$panelSpectra)
   list( #TODO: nat-sort by antigen
     antigens=as.character(sapply(ss, function(s) s$antigen)),
     fluorochromes=as.character(sapply(ss, function(s) s$fluorochrome)), #informative-only
