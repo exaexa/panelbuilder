@@ -1,7 +1,8 @@
 
 # panelBuildeR
 
-A small R Shiny app for base processing of flow cytometry samples. Main functions include:
+A small R Shiny app for base processing of flow cytometry samples. Main
+functions include:
 
 - advanced acquisition of clean spectra from single-stains
 - exporting and importing saved spectra in interoperable JSON format
@@ -26,8 +27,9 @@ Some interesting algorithms included:
     data about antigen and fluorochrome brightness
   - (Not yet implemented:) finding of optimal panel assignments
 - Unmixing
-  - non-linear regression (similar to non-negative least squares, also supports
-    non-negative residuals to better capture the incoming Poisson noise)
+  - non-linear regression (the implemented variant is similar to non-negative
+    least squares, but also supports non-negative residuals to better capture
+    the incoming Poisson noise)
   - OLS and several weighted variants thereof
   - MAPE-like unmixing
   - some useful data exported FCS files, e.g. unmixing RMSE and specific residuals
@@ -64,9 +66,10 @@ You should get a browser window open with the panelbuilder UI running.
   information to estimate the spectra from singlestains that you did not import,
   which you can use too. This gives some estimate of how the panel will perform
   before you try it with real reagents and cells.
-- **Unmixing:** You may use the imported singlestains in the Unmixing tabs for
-  unmixing any file with a matching list of channels. The unmixing will use the
-  antigen/fluorochrome combination specified on the "Panel" page.
+- **Unmixing:** You may use the imported singlestains on the "Unmixing" page,
+  for unmixing/compensating any FCS file that contains matching channels. The
+  unmixing will use the antigen/fluorochrome combination specified on the
+  "Panel" page.
 
 ## Development
 
