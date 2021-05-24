@@ -67,8 +67,6 @@ extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, elim=NULL) {
   sp[sp<0] <- 0 # clamp negatives (TODO: is this bias?)
   if(max(sp)==0) stop("Spectrum extraction problem: all coefficients non-positive.")
   sp <- sp/sqrt(sum(sp^2)) # normalize the spectrum
-  print("sp")
-  print(sp)
 
   reg <- lm(t(m1) ~ sp) # "unmix" using this single channel from the whole data
   e <- e2db(reg$coefficients['sp',]^2)/2 # _intensities_ in dB
@@ -79,8 +77,6 @@ extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, elim=NULL) {
   sds <- rowSums((sp*reg$residuals[,flt,drop=F])^2) / rowSums(1+reg$fitted.values[,flt,drop=F]^2)
 
   #iqs <- quantile(e, pnorm(c(-2,2))) # +/- 2sigma range of intensities #TODO: this might be viable later
-  print("sd(e)")
-  print(sd(e))
 
   channels <- nat.sort(colnames(mtx))
   perm <- indexin(channels, colnames(mtx))
