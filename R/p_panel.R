@@ -9,7 +9,8 @@ servePanelSetup <- function(input, output, session, wsp) {
   data <- shiny::reactiveValues(
     mode='select',
     display='mi',
-    estimate=F
+    estimate=F,
+    snrs=F
   )
 
   findInPanel <- function(ag,fc,p) {
@@ -40,25 +41,44 @@ servePanelSetup <- function(input, output, session, wsp) {
       }), levels=c('real','usedReal','est','usedEst')),
       check.names=F)
 
-    if(nrow(d)==0) NULL else
-    ggplot2::ggplot(d,
-      ggplot2::aes_string(
-        x='Antigen',
-        y='Fluorochrome',
-        fill=if(data$display=='mi') '`Mean expression`' else '`Signal sDev`',
-        color='Selected')) +
-      ggplot2::geom_tile(width=0.8, height=0.8, size=2) +
-      ggplot2::scale_fill_gradientn(
-        colors=colorspace::sequential_hcl(100, h=c(0, 90), c=c(80, NA, 34), l=c(30, 99), power=c(0.2, 2))) +
-      ggplot2::scale_color_manual("Selection",
-        values=c('#ccffe2', '#00cc33', '#cce2ff', '#0044ff'),
-        breaks=c('real','usedReal','est','usedEst'),
-        labels=c("Measured", "Meas. in panel", "Estimated", "Est. in panel")) +
-      cowplot::theme_cowplot() +
-      ggplot2::theme(
-        axis.text.x = ggplot2::element_text(angle=45, vjust=1, hjust=1),
-        axis.text.y = ggplot2::element_text(angle=45, vjust=1, hjust=1),
-        panel.grid = ggplot2::element_line(color='#eeeeee'))
+    if(data$snrs) {
+      d$SNR <- snr_panel_choices(wsp$panelAssignment, wsp$panelSpectraEst)
+      d$SNRtext <- dbf(d$SNR, unit='')
+    }
+
+    if(nrow(d)==0) NULL else {
+      plt <- ggplot2::ggplot(d,
+        ggplot2::aes(
+          x=`Antigen`,
+          y=`Fluorochrome`)) +
+        ggplot2::geom_tile(width=1, height=1, color='white', size=1, mapping=aes(fill=`Selected`)) +
+        ggplot2::scale_fill_manual("Selection",
+          values=c('#ccffe2', '#00cc33', '#cce2ff', '#0044ff'),
+          breaks=c('real','usedReal','est','usedEst'),
+          labels=c("Measured", "Meas. in panel", "Estimated", "Est. in panel")) +
+        ggnewscale::new_scale_fill() +
+        ggplot2::geom_tile(width=0.666, height=0.666, color='black', size=1,
+          mapping=aes_string(fill=
+            if(data$display=='mi') '`Mean expression`'
+            else '`Signal sDev`')) +
+        ggplot2::scale_fill_gradientn(
+          colors=colorspace::sequential_hcl(100,
+            h=c(0, 90), c=c(80, NA, 34), l=c(30, 99), power=c(0.2, 2)),
+          labels=
+            if(data$display=='mi') function(x)paste(x,'dBu')
+            else function(x)paste(x,'dB')) +
+        cowplot::theme_cowplot() +
+        ggplot2::theme(
+          axis.text.x = ggplot2::element_text(angle=45, vjust=1, hjust=1),
+          axis.text.y = ggplot2::element_text(angle=45, vjust=1, hjust=1),
+          panel.grid = ggplot2::element_line(color='#eeeeee'))
+
+      if(data$snrs) plt <- plt +
+        ggplot2::geom_label(mapping=aes(label=SNRtext, color=SNR)) +
+        ggplot2::scale_color_continuous(guide=F)
+
+      plt
+    }
   })
 
   observeEvent(input$doPanelClear, {
@@ -116,14 +136,32 @@ servePanelSetup <- function(input, output, session, wsp) {
     data$display <- 'sdi'
   })
 
+  observeEvent(input$doPanelSNRs, {
+    data$snrs <- !data$snrs
+  })
+
   output$uiPanelBtns <- shiny::renderUI(shiny::tagList(
-    shiny::actionButton('doPanelSelect', class=if(data$mode=='select') 'btn-primary' else 'btn-outline-primary', "Select"),
-    shiny::actionButton('doPanelEstimate', class=if(data$estimate) 'btn-success' else 'btn-danger', if(data$estimate) "Estimates ON" else "Estimates OFF"),
-    shiny::actionButton('doPanelClear', class='btn-warning', "Clear selection"),
-    shiny::actionButton('doPanelRemove', class=if(data$mode=='remove') 'btn-danger' else 'btn-outline-danger', "Remove spectra"),
-    shiny::actionButton('doPanelDisplayIntensity', class=if(data$display=='mi') 'btn-info' else 'btn-outline-info', "Display Intensity"),
-    shiny::actionButton('doPanelDisplaySignal', class=if(data$display=='sdi') 'btn-info' else 'btn-outline-info', "Display Signal")
-  ))
+    shiny::actionButton('doPanelSelect',
+      class=if(data$mode=='select') 'btn-primary' else 'btn-outline-primary',
+      "Select"),
+    shiny::actionButton('doPanelEstimate',
+      class=if(data$estimate) 'btn-success' else 'btn-danger',
+      if(data$estimate) "Estimates ON" else "Estimates OFF"),
+    shiny::actionButton('doPanelClear',
+      class='btn-warning',
+      "Clear selection"),
+    shiny::actionButton('doPanelRemove',
+      class=if(data$mode=='remove') 'btn-danger' else 'btn-outline-danger',
+      "Remove spectra"),
+    shiny::actionButton('doPanelDisplayIntensity',
+      class=if(data$display=='mi') 'btn-info' else 'btn-outline-info',
+      "Display Intensity"),
+    shiny::actionButton('doPanelDisplaySignal',
+      class=if(data$display=='sdi') 'btn-info' else 'btn-outline-info',
+      "Display Signal"),
+    shiny::actionButton('doPanelSNRs',
+      class=if(data$snrs) 'btn-success' else 'btn-danger',
+      if(data$snrs) "SNRs ON" else "SNRs OFF")))
 
   output$uiPanelSetup <- shiny::renderUI(shiny::tagList(
     shiny::h1("Panel setup"),

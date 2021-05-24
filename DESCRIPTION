@@ -11,7 +11,7 @@ Description: A collection of tools to build fluorescent cytometry panels,
              together with a Shiny UI.
 Depends: R (>= 3.5),
          shiny,
-	 colorspace, ggplot2, cowplot, scattermore,
+	 colorspace, ggplot2, cowplot, scattermore, ggnewscale,
 	 reshape2, gtools,
 	 png, openssl,
 	 flowCore

@@ -85,7 +85,8 @@ extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, eliminateSpe
 }
 
 # decibels should be used for intensities everywhere
-e2db <- function(x) 10*log(x[x>0], base=10)
+e02db <- function(x) 10*log(x, base=10)
+e2db <- function(x) e02db(x[x>0])
 db2e <- function(x) 10^(x/10)
 dbf <- function(x, unit='u')
   paste0(round(x,2),' dB',unit)

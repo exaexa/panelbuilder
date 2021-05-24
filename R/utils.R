@@ -14,3 +14,5 @@ indexin <- function(idx, arr) {
   names(tmp) <- arr
   unname(tmp[idx])
 }
+
+eachindex <- function(x) if(length(x)<1) c() else seq(length(x))
