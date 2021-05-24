@@ -3,7 +3,7 @@
 #'
 #' @param ... Passed to shinyApp()
 #' @export
-panelBuildeR <- function(...) {
+panelbuilder <- function(...) {
   required.pkgs <- c(
     'shiny',
     'EmbedSOM',
