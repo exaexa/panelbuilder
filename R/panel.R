@@ -29,8 +29,8 @@ getCommonChannels <- function(panel) {
 getUnmixingInfo <- function(wsp) {
   as <- cleanAssignments(wsp$panelAssignment, wsp$panelSpectraEst)
   ss <- lapply(nat.sort(names(as)), function(ag)
-    spectrumFind(wsp$panelSpectra, list(antigen=ag, fluorochrome=as[[ag]])))
-  chs <- getCommonChannels(wsp$panelSpectra)
+    spectrumFind(wsp$panelSpectraEst, list(antigen=ag, fluorochrome=as[[ag]])))
+  chs <- getCommonChannels(ss)
   list( #TODO: nat-sort by antigen
     antigens=as.character(sapply(ss, function(s) s$antigen)),
     fluorochromes=as.character(sapply(ss, function(s) s$fluorochrome)), #informative-only

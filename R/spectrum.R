@@ -1,57 +1,58 @@
 
-powerEstimate <- function(mtx, eliminateSpectra=NULL) {
-  # eliminateSpectra must have the same rows as mtx has columns
-  if(is.null(eliminateSpectra)) rowSums(mtx) else {
-    n <- nrow(mtx)
-    d <- ncol(mtx)
-    k <- ncol(eliminateSpectra)
+powerEstimate <- function(mtx) rowSums(mtx)
 
-    iters <- 100
-    alpha <- 0.1
-    tol <- 1
+eliminateSpectra <- function(mtx, elim=NULL) {
+  if(is.null(elim)) return(mtx)
 
-    x_kn <- matrix(0, k, n)
-    r_dn <- matrix(0, d, n)
+  n <- nrow(mtx)
+  d <- ncol(mtx)
+  k <- ncol(elim)
 
-    res <- .C("pw_gd",
-      n=as.integer(n),
-      d=as.integer(d),
-      k=as.integer(k),
-      iters=as.integer(iters),
-      alpha=as.single(alpha),
-      tol=as.single(tol),
-      s=as.single(t(eliminateSpectra)),
-      spw=as.single(matrix(1, d, k)),
-      snw=as.single(matrix(20, d, k)),
-      nw=as.single(rep(10,k)),
-      y=as.single(t(mtx)),
-      x=as.single(x_kn),
-      r=as.single(r_dn))
+  iters <- 100
+  alpha <- 0.1
+  tol <- 1
 
-    #TODO: why not completely replace mtx by residuals?
-    residuals <- matrix(res$r,n,d,byrow=T)
-    rowSums(residuals)
-  }
+  x_kn <- matrix(0, k, n)
+  r_dn <- matrix(0, d, n)
+
+  res <- .C("pw_gd",
+    n=as.integer(n),
+    d=as.integer(d),
+    k=as.integer(k),
+    iters=as.integer(iters),
+    alpha=as.single(alpha),
+    tol=as.single(tol),
+    s=as.single(t(elim)),
+    spw=as.single(matrix(1, d, k)),
+    snw=as.single(matrix(20, d, k)), # this might be parametrizable
+    nw=as.single(rep(10,k)),
+    y=as.single(t(mtx)),
+    x=as.single(x_kn),
+    r=as.single(r_dn))
+
+  # return the residuals that couldn't be explained by spectra removal
+  matrix(res$r,n,d,byrow=T)
 }
 
 #' Extract the spectrum
 #'
 #' the spectra are scaled to the mI.
-extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, eliminateSpectra=NULL) {
-  m2 <- mtx[gate & powerGate,,drop=F]
-  a <- powerEstimate(m2, eliminateSpectra)
+extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, elim=NULL) {
+
+  gc(full=T)
+
+  if(length(gate)==1) gate <- rep(T, nrow(mtx))
+  if(length(powerGate)==1) powerGate <- rep(T, nrow(mtx))
+
+  m1 <- eliminateSpectra(mtx[gate,, drop=F], elim)
+  m2 <- m1[powerGate[gate],,drop=F]
+  a <- powerEstimate(m2)
 
   sp <- NULL
-  sds <- NULL
 
   if(method=='ols') {
     reg <- lm(m2~a)
-
     sp <- reg$coefficients['a',]
-    sp[sp<0] <- 0 # clamp negatives (TODO: is this bias?)
-    if(max(sp)==0) stop("Spectrum extraction problem: all coefficients non-positive.")
-    sp <- sp/sqrt(sum(sp^2)) # normalized spectrum
-    sds <- apply(reg$residuals/sqrt(rowSums(reg$fitted.values^2)),2,sd) * sp # how much of the energy is unexplained
   } else if(method=='theil-sen') {
     ssize <- max(1e6, 10*length(a))
     sa <- sample(length(a), ssize, replace=T)
@@ -59,29 +60,35 @@ extractSpectrum <- function(mtx, method='ols', gate=T, powerGate=T, eliminateSpe
     v <- (m2[sa,]-m2[sb,])
     p <- (a[sa]-a[sb])
     flt <- abs(p)>1
-    v <- v[flt,]
-    p <- p[flt]
-    sp <- apply(v/p, 2, median)
-    sp[sp<0] <- 0
-    sp <- sp/sqrt(sum(sp^2))
-    sds <- 0.1*sp #TODO: finish this
+    vp <- v[flt,]/p[flt]
+    sp <- apply(vp, 2, median)
   } else stop("Unknown method for spectrum extraction")
 
-  m2 <- t(mtx[gate,,drop=F]) # matrix for guessing the intensity
-  reg2 <- lm(m2 ~ sp) # "unmix" using this single channel (TODO: better regression?)
-  ws <- colSums(reg2$fitted.values^2) /
-    (colSums(reg2$fitted.values^2)+colSums(reg2$residuals^2)) # weights: how much of the energy is explained?
-  e <- e2db(reg2$coefficients['sp',]^2)/2 # intensities in dB, also dodging the zeroes
-  e[e< -100] <- -100 # dodge zeroes again
-  wm <- sum(e*ws)/sum(ws) # weighted mean intensities
-  wsd <- sqrt(sum((e-wm)^2*ws)/sum(ws)) # weighted sdev of intensities
+  sp[sp<0] <- 0 # clamp negatives (TODO: is this bias?)
+  if(max(sp)==0) stop("Spectrum extraction problem: all coefficients non-positive.")
+  sp <- sp/sqrt(sum(sp^2)) # normalize the spectrum
+  print("sp")
+  print(sp)
+
+  reg <- lm(t(m1) ~ sp) # "unmix" using this single channel from the whole data
+  e <- e2db(reg$coefficients['sp',]^2)/2 # _intensities_ in dB
+  e[e < -100] <- -100 # dodge zeroes
+
+  # only look at the upper half of the data for spectral noise
+  flt <- e>=mean(e)
+  sds <- rowSums((sp*reg$residuals[,flt,drop=F])^2) / rowSums(1+reg$fitted.values[,flt,drop=F]^2)
+
+  #iqs <- quantile(e, pnorm(c(-2,2))) # +/- 2sigma range of intensities #TODO: this might be viable later
+  print("sd(e)")
+  print(sd(e))
+
   channels <- nat.sort(colnames(mtx))
   perm <- indexin(channels, colnames(mtx))
   list(channels=channels,
        mS=unname(sp)[perm],
        sdS=unname(sds)[perm],
-       mI=wm,
-       sdI=wsd)
+       mI=mean(e),
+       sdI=sd(e)) #TODO: (iqs[2]-iqs[1])/sqrt(12)) #this roughly corresponded to the energy in uniform distribution
 }
 
 # decibels should be used for intensities everywhere
@@ -100,12 +107,14 @@ defaultFSCChannel <- function(nms)
 defaultSSCChannel <- function(nms)
   nms[c(grepl("(ssc|ss0).*-a", nms, ignore.case=T),grepl("(ssc|ss0)", nms, ignore.case=T))][1]
 
-#spectrumPalette <- grDevices::colorRampPalette(c('#44dd22','#ffddaa','#002040'))
+# This is a nice transcript of how the spectrum palettes evolved. Keep adding.
+# Remember that the midpoint is important.
 spectrumPalette <- function(n=128, ...)
+  #grDevices::colorRampPalette(c('#44dd22','#ffddaa','#002040'))
   #colorspace::sequential_hcl(n=n, 'viridis', rev=T)
-  #colorRampPalette(c('#44dd22','white','black'))(n,...)
-  #colorRampPalette(c('#88aacc',EmbedSOM::ExpressionPalette(n-2),'white'))(n,...)
-  #colorRampPalette(c('#338822','#ffcc88','black'))(n,...)
+  #grDevices::colorRampPalette(c('#44dd22','white','black'))(n,...)
+  #grDevices::colorRampPalette(c('#88aacc',EmbedSOM::ExpressionPalette(n-2),'white'))(n,...)
+  #grDevices::colorRampPalette(c('#338822','#ffcc88','black'))(n,...)
   #colorspace::sequential_hcl(n = n, h = 114, c = c(0, 0, 114), l = c(0,100, 50), power = 1.1, ...)
   #colorspace::diverging_hcl(n = 28, h = c(220, 33), c = c(43, 55), l = c(100, 35), power = 1)
   colorRampPalette(c("#7CC3DB", "#77ACBF", "#525252", "#C59B8A", "#FFF3DD"))(n,...)
@@ -123,7 +132,7 @@ plotSpectrum <- function(ms, sds, nms=names(ms), res=128) {
   ggplot2::ggplot(d) + 
     ggplot2::aes(Var2,Var1,fill=value) +
     ggplot2::geom_tile() +
-    ggplot2::scale_fill_gradientn(colors=spectrumPalette(32),guide=F) +
+    ggplot2::scale_fill_gradientn(colors=spectrumPalette(32), limits=c(0,1), guide=F) +
     ggplot2::scale_x_discrete(name=NULL) +
     ggplot2::scale_y_continuous(labels=NULL, name=NULL) +
     cowplot::theme_cowplot() +

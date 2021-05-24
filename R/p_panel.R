@@ -41,12 +41,12 @@ servePanelSetup <- function(input, output, session, wsp) {
       }), levels=c('real','usedReal','est','usedEst')),
       check.names=F)
 
-    if(data$snrs) {
-      d$SNR <- snr_panel_choices(wsp$panelAssignment, wsp$panelSpectraEst)
-      d$SNRtext <- dbf(d$SNR, unit='')
-    }
-
     if(nrow(d)==0) NULL else {
+      if(data$snrs) {
+        d$SNR <- snr_panel_choices(wsp$panelAssignment, wsp$panelSpectraEst)
+        d$SNRtext <- dbf(d$SNR, unit='')
+      }
+
       plt <- ggplot2::ggplot(d,
         ggplot2::aes(
           x=`Antigen`,
@@ -75,7 +75,7 @@ servePanelSetup <- function(input, output, session, wsp) {
 
       if(data$snrs) plt <- plt +
         ggplot2::geom_label(mapping=aes(label=SNRtext, color=SNR)) +
-        ggplot2::scale_color_continuous(guide=F)
+        ggplot2::scale_color_gradientn(colors=rev(EmbedSOM::ExpressionPalette(100)), guide=F)
 
       plt
     }

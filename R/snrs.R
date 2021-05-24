@@ -8,12 +8,17 @@ snr_panel_choices <- function(as, p, static=1) {
   self_noise <- array(0, dim=c(length(chs), length(ags), length(fcs)))
   signal <- array(0, dim=c(length(chs), length(ags), length(fcs)))
 
+  dimnames(self_noise)[[2]]<-ags
+  dimnames(self_noise)[[3]]<-fcs
+  dimnames(signal)[[2]]<-ags
+  dimnames(signal)[[3]]<-fcs
+
   # fill in the available data
   for(sp in p) {
     s <- sp$spectrum
     cixs <- indexin(s$channels, chs)
     self_noise[,sp$antigen, sp$fluorochrome] <- (db2e(s$mI) * s$sdS)^2
-    signal[,sp$antigen, sp$fluorochrome] <- (db2e(s$sdI) * s$mS)^2
+    signal[,sp$antigen, sp$fluorochrome] <- (db2e(s$mI + s$sdI) * s$mS)^2
   }
 
   # collect the total noise from assigned panel

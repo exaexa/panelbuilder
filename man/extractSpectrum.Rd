@@ -4,13 +4,7 @@
 \alias{extractSpectrum}
 \title{Extract the spectrum}
 \usage{
-extractSpectrum(
-  mtx,
-  method = "ols",
-  gate = T,
-  powerGate = T,
-  eliminateSpectra = NULL
-)
+extractSpectrum(mtx, method = "ols", gate = T, powerGate = T, elim = NULL)
 }
 \description{
 the spectra are scaled to the mI.
