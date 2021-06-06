@@ -64,11 +64,7 @@ serveImportSpectra <- function(input, output, session, wsp) {
       "Gate column Y",
       multiple=F,
       choices=colnames(data$fcsMtx),
-      selected=defaultSSCChannel(colnames(data$fcsMtx))),
-    shiny::plotOutput('plotImportGate',
-      width="20em",
-      height="20em",
-      brush=shiny::brushOpts('importGateBrush'))
+      selected=defaultSSCChannel(colnames(data$fcsMtx)))
   ))
 
   getGate <- function() {
@@ -210,6 +206,10 @@ serveImportSpectra <- function(input, output, session, wsp) {
         shiny::actionButton('doImportGetSpectrum', "Compute spectrum")),
       shiny::column(4,style='min-width:20em',
         shiny::uiOutput('uiImportGate'),
+        shiny::plotOutput('plotImportGate',
+          width="20em",
+          height="20em",
+          brush=shiny::brushOpts('importGateBrush')),
         shiny::uiOutput('uiImportPower')),
       shiny::column(4,style='min-width:10em',
         shiny::uiOutput('uiImportSave'))),
