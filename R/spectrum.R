@@ -145,10 +145,12 @@ plotSpectrumPNG <- function(ms, sds, res=32, x=512, y=32) {
 
 defaultMachines <- c('Aurora','Symphony','Fortessa II','BFC 9k')
 
+gatherFormContent <- function(fld, spectra, defaults=NULL)
+  nat.sort(unique(c(defaults, unlist(sapply(spectra, function(x) x[[fld]])))))
+
 spectrumMetadataForm <- function(prefix, spectra, selected=NULL, defaultAll=F, create=T, multiple=F) {
   i <- function(x)paste0(prefix, x)
-  mkch <- function(fld, defaults=NULL)
-    nat.sort(unique(c(defaults, unlist(sapply(spectra, function(x) x[[fld]])))))
+  mkch <- function(a, ...) gatherFormContent(a, spectra, ...)
 
   shiny::tagList(
     shiny::selectizeInput(i('Machine'), "Cytometer model",

@@ -17,6 +17,8 @@ serveImportSpectra <- function(input, output, session, wsp) {
       m <- flowCore::read.FCS(input$fileImportFCS$datapath)@exprs
       colnames(m) <- unname(colnames(m))
       data$fcsMtx <- m
+      doAutofillAG()
+      doAutofillFC()
     }, error=function(e) shiny::showNotification(type='error',
       paste("Loading failed:",e)))
   })
@@ -183,6 +185,12 @@ serveImportSpectra <- function(input, output, session, wsp) {
     wsp$page # reload the information from wsp$spectra after the page changed
     shiny::tagList(
       shiny::h3("Save the spectrum"),
+      shiny::checkboxInput('importAutofillAG',
+        "Autofill antigen",
+        value=T),
+      shiny::checkboxInput('importAutofillFC',
+        "Autofill fluorochrome",
+        value=T),
       spectrumMetadataForm('importForm', isolate(wsp$spectra)),
       shiny::uiOutput('uiImportSaveBtn')
   )})
@@ -191,6 +199,40 @@ serveImportSpectra <- function(input, output, session, wsp) {
     if(is.null(data$spectrum)) "No spectrum to save"
     else shiny::actionButton('doImportSave', "Save")
   )
+
+  doAutofillAG <- function() {
+    if(!is.null(input$fileImportFCS) && !is.null(input$importAutofillAG))
+      if(input$importAutofillAG) {
+      availAntigens <- gatherFormContent('antigen',
+        wsp$spectra,
+        defaultAntigens)
+      updateSelectizeInput(session,
+        'importFormAntigen',
+        selected=availAntigens[which.min(
+          adist(availAntigens, input$fileImportFCS$name,
+            ignore.case=T, costs=c(del=3, sub=4)))])
+      }
+  }
+  doAutofillFC <- function() {
+    if(!is.null(input$fileImportFCS) && !is.null(input$importAutofillFC))
+      if(input$importAutofillFC) {
+        availFluorochromes <- gatherFormContent('fluorochrome',
+          wsp$spectra,
+          defaultFluorochromes)
+        updateSelectizeInput(session,
+          'importFormFluorochrome',
+          selected=availFluorochromes[which.min(
+            adist(availFluorochromes, input$fileImportFCS$name,
+              ignore.case=T, costs=c(del=3, sub=4)))])
+      }
+  }
+
+  shiny::observeEvent('importAutofillAG', {
+    doAutofillAG()
+  })
+  shiny::observeEvent('importAutofillFC', {
+    doAutofillFC()
+  })
 
   output$uiImportSpectra <- shiny::renderUI(shiny::tagList(
     shiny::h1("Import spectral profiles"),
