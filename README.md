@@ -15,7 +15,21 @@ generally work with anything that produces FCS3 files. We have successfully
 applied this to data from several cytometer vendors (both spectral and the
 "traditional" multicolor).
 
-Some interesting algorithms included:
+## Screenshot
+
+![screenshot](media/screenshot.png)
+
+## Acknowledgements
+
+PanelBuildeR was developed at the [IOCB Prague](https://www.uochb.cz/) and
+[IHKT Prague](https://www.uhkt.cz/). The development was supported by
+[ELIXIR](https://elixir-europe.org/), the European infrastructure for life
+science.
+
+<img src="media/uochb.svg" alt="IOCB logo" height="64px">   <img src="media/uhkt.svg" alt="IHBT logo" height="64px">   <img src="media/elixir.svg" alt="ELIXIR logo" height="64px">
+
+
+## Available algorithms & tools
 
 - Spectra acquisition:
   - cleaning spectra with non-linear regression (e.g.: remove harsh
