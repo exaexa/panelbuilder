@@ -15,11 +15,7 @@ generally work with anything that produces FCS3 files. We have successfully
 applied this to data from several cytometer vendors (both spectral and the
 "traditional" multicolor).
 
-## Screenshot
-
-![screenshot](media/screenshot.png)
-
-## Acknowledgements
+#### Acknowledgements
 
 PanelBuildeR was developed at the [IOCB Prague](https://www.uochb.cz/)
 and [IHBT Prague](https://www.uhkt.cz/),
@@ -30,6 +26,9 @@ the European infrastructure for life science.
 
 <img src="media/uochb.svg" alt="IOCB logo" height="64px">   <img src="media/uhkt.svg" alt="IHBT logo" height="64px">   <img src="media/babraham.svg" alt="Babraham Institute logo" height="64px">   <img src="media/elixir.svg" alt="ELIXIR logo" height="64px">
 
+## Screenshot
+
+![screenshot](media/screenshot.png)
 
 ## Available algorithms & tools
 
