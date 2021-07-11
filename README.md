@@ -21,12 +21,14 @@ applied this to data from several cytometer vendors (both spectral and the
 
 ## Acknowledgements
 
-PanelBuildeR was developed at the [IOCB Prague](https://www.uochb.cz/) and
-[IHKT Prague](https://www.uhkt.cz/). The development was supported by
-[ELIXIR](https://elixir-europe.org/), the European infrastructure for life
-science.
+PanelBuildeR was developed at the [IOCB Prague](https://www.uochb.cz/)
+and [IHBT Prague](https://www.uhkt.cz/),
+in cooperation with [Liston Lab](http://www.liston.babraham.ac.uk/)
+of the [Babraham Institute](https://www.babraham.ac.uk/).
+The development was supported by the Czech node of [ELIXIR](https://elixir-europe.org/),
+the European infrastructure for life science.
 
-<img src="media/uochb.svg" alt="IOCB logo" height="64px">   <img src="media/uhkt.svg" alt="IHBT logo" height="64px">   <img src="media/elixir.svg" alt="ELIXIR logo" height="64px">
+<img src="media/uochb.svg" alt="IOCB logo" height="64px">   <img src="media/uhkt.svg" alt="IHBT logo" height="64px">   <img src="media/babraham.svg" alt="Babraham Institute logo" height="64px">   <img src="media/elixir.svg" alt="ELIXIR logo" height="64px">
 
 
 ## Available algorithms & tools
