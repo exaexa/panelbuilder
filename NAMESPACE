@@ -2,4 +2,3 @@
 
 export(doUnmix)
 export(panelbuilder)
-useDynLib(panelbuilder, .registration=True)

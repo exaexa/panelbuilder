@@ -1,5 +1,5 @@
 
-# panelBuildeR
+# PanelBuildeR
 
 A small R Shiny app for base processing of flow cytometry samples. Main
 functions include:
@@ -52,7 +52,18 @@ the European infrastructure for life science.
 
 ## Installation
 
-You can install this using `devtools` directly from the GitHub repository:
+You can install this using `devtools` directly from the GitHub repository. You will first need the unmixing package `nougad`:
+
+```r
+devtools::install_github('exaexa/nougad')
+```
+
+Check out the [`nougad`
+documentation](https://github.com/exaexa/nougad/blob/master/README.md) for some
+helpful hints about installation; in particular there might be very desirable
+hardware-accelerated variants.
+
+After that, install PanelBuildeR:
 
 ```r
 devtools::install_github('exaexa/panelbuilder')
@@ -65,7 +76,7 @@ library(panelbuilder)
 panelbuilder()
 ```
 
-You should get a browser window open with the panelbuilder UI running.
+You should get a browser window open with the PanelBuildeR UI running.
 
 ## Quick How-To
 
