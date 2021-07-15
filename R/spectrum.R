@@ -4,34 +4,18 @@ powerEstimate <- function(mtx) rowSums(mtx)
 eliminateSpectra <- function(mtx, elim=NULL) {
   if(is.null(elim)) return(mtx)
 
-  n <- nrow(mtx)
-  d <- ncol(mtx)
-  k <- ncol(elim)
-
-  iters <- 100
-  alpha <- 0.1
-  tol <- 1
-
-  x_kn <- matrix(0, k, n)
-  r_dn <- matrix(0, d, n)
-
-  res <- .C("pw_gd",
-    n=as.integer(n),
-    d=as.integer(d),
-    k=as.integer(k),
-    iters=as.integer(iters),
-    alpha=as.single(alpha),
-    tol=as.single(tol),
-    s=as.single(t(elim)),
-    spw=as.single(matrix(1, d, k)),
-    snw=as.single(matrix(20, d, k)), # this might be parametrizable
-    nw=as.single(rep(10,k)),
-    y=as.single(t(mtx)),
-    x=as.single(x_kn),
-    r=as.single(r_dn))
+  mtx[mtx<0] <- 0
+  res <- nougad::nougad(
+    mtx,
+    t(elim),
+    10,
+    0.1,
+    1,
+    alpha=0.05,
+    iters=1000L)$residuals
 
   # return the residuals that couldn't be explained by spectra removal
-  matrix(res$r,n,d,byrow=T)
+  res
 }
 
 #' Extract the spectrum
