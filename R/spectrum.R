@@ -112,7 +112,7 @@ plotSpectrum <- function(ms, sds, nms=names(ms), res=128) {
   ggplot2::ggplot(d) + 
     ggplot2::aes(Var2,Var1,fill=value) +
     ggplot2::geom_tile() +
-    ggplot2::scale_fill_gradientn(colors=spectrumPalette(32), limits=c(0,1), guide=F) +
+    ggplot2::scale_fill_gradientn(colors=spectrumPalette(32), limits=c(0,1), guide='none') +
     ggplot2::scale_x_discrete(name=NULL) +
     ggplot2::scale_y_continuous(labels=NULL, name=NULL) +
     cowplot::theme_cowplot() +

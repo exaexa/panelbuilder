@@ -75,7 +75,7 @@ servePanelSetup <- function(input, output, session, wsp) {
 
       if(data$snrs) plt <- plt +
         ggplot2::geom_label(mapping=aes(label=SNRtext, color=SNR)) +
-        ggplot2::scale_color_gradientn(colors=rev(EmbedSOM::ExpressionPalette(100)), guide=F)
+        ggplot2::scale_color_gradientn(colors=rev(EmbedSOM::ExpressionPalette(100)), guide='none')
 
       plt
     }
